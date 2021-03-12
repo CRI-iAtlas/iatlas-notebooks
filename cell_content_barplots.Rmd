@@ -32,9 +32,11 @@ The main plotting function we're using here is called 'plotly_bar'.
 You can get help with '?plotly_bar'.
 
 Here we'll use source to bring them in.
+
 ```{r}
 source('functions/notebook_functions.R')
 ```
+
 
 # Tissue compartment fractions barplot
 
@@ -61,39 +63,29 @@ head(df)
 ```
 
 
-The barplot function takes a very specific format, so we'll transform the 
+The notebook_barplot function takes a very specific format, so we'll transform the 
 data.frame from above using the 'build_cellcontent_barplot_df2' function.
 It essentially gives it a tidy format with generic column names.
-
-```{r}
-
-barplot_df <- build_cellcontent_barplot_df2( # could use better name
-    df,
-    x_column = "fraction_type",
-    y_column = "fraction",
-    sort_by_var_choice = "Group", 
-    reorder_func_choice = "None"
-)
-
-```
 
 Now we're ready to plot. We will use the plot functions from the iatlas.modules 
 package.
 
 Here we're plotting the mean fraction per group with error bars.
 
-## put reorder function here ##
+
 
 ```{r}
-iatlas.modules::plotly_bar(
-  plot_data = barplot_df, 
-  x_col = 'x', 
-  y_col = 'y', 
-  error_col = 'error', 
-  color_col = 'color', 
+
+notebook_barplot(
+  df,
+  sort_by_var_choice = "Group", 
+  reorder_func_choice = "None",
+  show_error_bars = TRUE,
   ylab = 'Fraction Mean', 
   xlab = 'Fraction Type by Group',
-  title = 'Tissue type fractions by group')
+  title = 'Tissue type fractions by group'
+)
+
 ```
 
 
@@ -123,40 +115,25 @@ head(df)
 ```
 
 
-
 The barplot function takes a very specific format, so we'll transform the 
 data.frame from above using the 'build_cellcontent_barplot_df2' function.
 It essentially gives it a tidy format with generic column names.
 
 ```{r}
 
-barplot_df <- build_cellcontent_barplot_df2( # could use better name
-    df,
-    x_column = "fraction_type",
-    y_column = "fraction",
-    sort_by_var_choice = "Group", 
-    reorder_func_choice = "None"
-)
-
-```
-
-Now we're ready to plot. We will use the plot functions from the iatlas.modules 
-package.
-
-## put reorder function here ##
-
-```{r}
-iatlas.modules::plotly_bar(
-  plot_data = barplot_df, 
-  x_col = 'x', 
-  y_col = 'y', 
-  error_col = NA, ## turning off the error bars
-  color_col = 'color', 
+notebook_barplot(
+  df,
+  sort_by_var_choice = "Group", 
+  reorder_func_choice = "None",
+  show_error_bars = NA,
   ylab = 'Cell Type Fraction', 
   xlab = 'Fraction by Group',
   title = 'Celltype fractions by group'
 )
+
+
 ```
+
 
 
 # Plot your results with iAtlas results.
@@ -176,13 +153,13 @@ the same thing (i.e. C2).
 
 ```{r}
 
-# first we'll subset to a single cancer type.
+# first we'll subset to a single cancer type, KICH
 kich_fmx <- iatlas_fmx %>% dplyr::filter(Study == 'KICH')
 
 # then we'll annotate the iatlas labels.
 kich_fmx$Subtype_Immune_Model_Based <- sapply(kich_fmx$Subtype_Immune_Model_Based, function(x) paste0('iAtlas_',x))
 
-# Next we work towards formating it in such a way as to bind to the above data.frame
+# Next we work towards formatting it in such a way as to bind to the above data.frame
 # Above we have cell types:
 # 'Dendritic Cells', 'Eosinophils', 'Lymphocytes', 'Macrophages', 'Mast Cells', 'Neutrophils'
 kich_fmx2 <- kich_fmx %>% 
@@ -202,46 +179,28 @@ colnames(kich_fmx2)[1] <- "GROUP"
 # and finally we'll go from wide to a narrow matrix
 kich_fmx2_long <- tidyr::gather(kich_fmx2, fraction_type, fraction, Dendritic_cells:Neutrophils, factor_key=TRUE)
 
-# merge dfs
+# and we can merge data frames.
 new_df <- rbind(df, kich_fmx2_long)
 
 ```
 
 
-
-
-The barplot function takes a very specific format, so we'll transform the 
-data.frame from above using the 'build_cellcontent_barplot_df2' function.
-It essentially gives it a tidy format with generic column names.
+With our data.frame combining iAtlas and simulated results, 
+we can make a plot showing both the new samples with iAtlas KICH results.
 
 ```{r}
 
-barplot_df <- build_cellcontent_barplot_df2( # could use better name
-    new_df,
-    x_column = "fraction_type",
-    y_column = "fraction",
-    sort_by_var_choice = "Group",   ## Choose a feature to sort on
-    reorder_func_choice = "None"           ## functions include Min, Max, Mean
-)
-
-```
-
-Now we're ready to plot. We will use the plot functions from the iatlas.modules 
-package.  This will sort on group labels.
-
-```{r}
-iatlas.modules::plotly_bar(
-  plot_data = barplot_df, 
-  x_col = 'x', 
-  y_col = 'y', 
-  error_col = NA, ## turning off the error bars
-  color_col = 'color', 
+notebook_barplot(
+  new_df,
+  sort_by_var_choice = "Group", 
+  reorder_func_choice = "None",
+  show_error_bars = FALSE,
   ylab = 'Cell Type Fraction', 
   xlab = 'Fraction by Group',
   title = 'Celltype fractions by group'
 )
-```
 
+```
 
 
 Here, we'll use the reordering function, by selecting one of the cell types
@@ -250,24 +209,16 @@ Here, we'll use the reordering function, by selecting one of the cell types
 
 ```{r}
 
-barplot_df <- build_cellcontent_barplot_df2( # could use better name
-    new_df,
-    x_column = "fraction_type",
-    y_column = "fraction",
-    sort_by_var_choice = "Neutrophils",   ## Choose a feature to sort on
-    reorder_func_choice = "Max"           ## functions include Min, Max, Mean
-)
-
-iatlas.modules::plotly_bar(
-  plot_data = barplot_df, 
-  x_col = 'x', 
-  y_col = 'y', 
-  error_col = NA, ## turning off the error bars
-  color_col = 'color', 
+notebook_barplot(
+  new_df,
+  sort_by_var_choice = "Neutrophils", 
+  reorder_func_choice = "Max",
+  show_error_bars = NA,
   ylab = 'Cell Type Fraction', 
   xlab = 'Fraction by Group',
-  title = 'Celltype fractions by group'
+  title = 'Celltype fractions by group sorted by Neutrophils'
 )
+
 ```
 
 

@@ -130,3 +130,63 @@ build_cellcontent_barplot_df2 <- function(df, x_column, y_column, sort_by_var_ch
   return(result_df)
 }
 
+
+notebook_barplot <- function(
+  df,
+  sort_by_var_choice,
+  reorder_func_choice,
+  show_error_bars,
+  ylab, 
+  xlab,
+  title
+) {
+
+  # fix it if written like normal human
+  if (colnames(df)[1] == 'Group') {
+    colnames(df)[1] <- 'GROUP'
+  }
+   
+  # need columns to have specific names. 
+  if (! all(colnames(df) %in% c('GROUP', 'fraction_type', 'fraction')) ){
+    print('error: please use GROUP, fraction_type, fraction as column names for df')
+    return()
+  }
+  
+  # check parameters
+  if (show_error_bars == TRUE) {
+    show_error_bars = 'error'
+  } else if (show_error_bars == FALSE) {
+    show_error_bars <- NA
+  } else if (show_error_bars == 'error') {
+    show_error_bars <- 'error'  # same
+  } else {
+    print('error: show_error_bars must take values TRUE, FALSE')
+    return()
+  }
+  
+  
+  if (sort_by_var_choice != 'Group' & (!sort_by_var_choice %in% df$fraction_type)) { 
+    print('error: sort_by_var_choice must be Group or a selection in fraction_type')  
+    return()
+  }
+  
+
+  barplot_df <- build_cellcontent_barplot_df2( # could use better name
+    df,
+    x_column = "fraction_type",
+    y_column = "fraction",
+    sort_by_var_choice = sort_by_var_choice, 
+    reorder_func_choice = reorder_func_choice
+  )
+  
+  iatlas.modules::plotly_bar(
+    plot_data = barplot_df, 
+    x_col = 'x', 
+    y_col = 'y', 
+    error_col = show_error_bars,   # 'rror' or NA
+    color_col = 'color', 
+    ylab = ylab, 
+    xlab = xlab,
+    title = title)
+  
+}
