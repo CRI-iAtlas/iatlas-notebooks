@@ -131,6 +131,54 @@ build_cellcontent_barplot_df2 <- function(df, x_column, y_column, sort_by_var_ch
 }
 
 
+
+build_distribution_plot_df2 <- function(
+  df, 
+  ysel,
+  scale_func_choice = "None",
+  reorder_choice = "None"
+){
+  
+  scale_function <- switch(
+    scale_func_choice,
+    "None" = identity, 
+    "Log2" = log2,
+    "Log2 + 1" = function(x) log2(x + 1),
+    "Log10" = log10,
+    "Log10 + 1" = function(x) log10(x + 1),
+  )
+  
+  reorder_function <- function(reorder_choice, x,y) {
+    x <- factor(x)
+    switch(
+      reorder_choice,
+      "None" = x,
+      "Median" = forcats::fct_reorder(x, y, median, na.rm=T),
+      "Mean" = forcats::fct_reorder(x, y, mean, na.rm=T),
+      "Max" = forcats::fct_reorder(x, y, max, na.rm=T),
+      "Min" = forcats::fct_reorder(x, y, min, na.rm=T)
+    )
+  }
+  
+  colnames(df) <- c('x', 'label', 'y')
+  
+  filter_df <- df[df$label == ysel,]
+  
+  df2 <- filter_df %>% 
+    dplyr::select(x, y, label) %>% 
+    tidyr::drop_na() %>% 
+    dplyr::mutate(y = scale_function(y)) %>% 
+    dplyr::mutate(x = reorder_function(reorder_choice,x,y)) %>%
+    tidyr::drop_na() %>% 
+    dplyr::filter(!is.infinite(y))
+  
+  return(df2)
+  
+}
+
+
+
+
 notebook_barplot <- function(
   df,
   sort_by_var_choice,
@@ -190,3 +238,99 @@ notebook_barplot <- function(
     title = title)
   
 }
+
+
+notebook_violinplot <- function(
+  df,
+  y_col,
+  scale_func_choice = 'None',
+  reorder_func_choice = 'None',
+  fill_colors = NULL,
+  points = NULL,
+  showlegend = T,
+  ylab = '', 
+  xlab = '',
+  title = ''
+) {
+
+  # fix it if written like normal human
+  if (colnames(df)[1] == 'Group') {
+    colnames(df)[1] <- 'GROUP'
+  }
+  
+  # need columns to have specific names. 
+  if (! all(colnames(df) %in% c('GROUP', 'fraction_type', 'fraction')) ){
+    print('error: please use GROUP, fraction_type, fraction as column names for df')
+    return()
+  }
+  
+  #  ## check for correct function names #
+  # if (sort_by_var_choice != 'Group' & (!sort_by_var_choice %in% df$fraction_type)) { 
+  #  print('error: sort_by_var_choice must be Group or a selection in fraction_type')  
+  #  return()
+  #}
+  
+  violin_df <- build_distribution_plot_df2(df,
+                                          ysel=y_col,
+                                          scale_func_choice = scale_func_choice,
+                                          reorder_choice = reorder_func_choice)
+
+  iatlas.modules::plotly_violin(
+    data = violin_df, 
+    x_col = 'x', 
+    y_col = 'y',
+    fill_colors=fill_colors,
+    points=points,
+    showlegend=showlegend,
+    ylab = ylab, 
+    xlab = xlab,
+    title = title
+    )
+  
+}
+
+
+
+notebook_boxplot <- function(
+  
+  df,
+  y_col,
+  scale_func_choice = 'None',
+  reorder_func_choice = 'None',
+  fill_colors = NULL,
+  ylab = '', 
+  xlab = '',
+  title = ''
+) {
+  
+  # fix it if written like normal human
+  if (colnames(df)[1] == 'Group') {
+    colnames(df)[1] <- 'GROUP'
+  }
+  
+  # need columns to have specific names. 
+  if (! all(colnames(df) %in% c('GROUP', 'fraction_type', 'fraction')) ){
+    print('error: please use GROUP, fraction_type, fraction as column names for df')
+    return()
+  }
+  
+  # check for function names and reorder choices
+  
+  box_df <- build_distribution_plot_df2(df,
+                                        ysel=y_col,
+                                        scale_func_choice = scale_func_choice,
+                                        reorder_choice = reorder_func_choice)
+  
+  iatlas.modules::plotly_box(
+    data = box_df, 
+    x_col = 'x', 
+    y_col = 'y',
+    fill_colors=fill_colors,
+    ylab = ylab, 
+    xlab = xlab,
+    title = title
+  )
+  
+}
+
+

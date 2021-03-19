@@ -1,0 +1,107 @@
+---
+title: "CRI iAtlas -- immune feature trends"
+output: html_notebook
+---
+
+# Immune Feature Trends Module
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+First we are going to install the iAtlas-modules package to gain access to plotting functions.
+
+```{r}
+packages = c("magrittr", "wrapr", "dplyr", "feather", "tidyr")
+
+sapply(packages, function(x) {
+  if (!require(x,character.only = TRUE))
+    install.packages(x)
+    library(x,character.only = TRUE)
+})
+
+# and our iatlas package from github
+if (!require(iatlas.modules)) {
+  devtools::install_github("CRI-iAtlas/iatlas.modules")
+  library(iatlas.modules)
+}
+
+```
+
+We have a collection of helper functions in the 'notebook_functions.R' file.
+
+The main plotting function we're using here is called 'plotly_violin'.
+You can get help with '?plotly_bar'.
+
+Here we'll use source to bring them in.
+
+```{r}
+library(iatlas.modules)
+source('functions/notebook_functions.R')
+```
+
+
+# Distributions
+
+# Tissue compartment fractions barplot
+
+In this case we'll assume you have some immune features computed
+for each sample.
+
+We'll need a data.frame with the following columns in order:
+
+Group         ## (could be anything, but immune subytpe is a good choice.)
+fraction_type ## c(leukocyte_fraction, Tumor_fraction, Stromal_fraction)
+fraction      ## a numeric value.
+
+Here's a example simulation.
+
+```{r}
+
+df <- data.frame(
+  GROUP = sample(x=c('C1','C2','C3','C4','C5','C6'), size=100, replace=T),
+  fraction_type = sample( c('leukocyte_fraction', 'Wound Healing'), size=100, replace=T),
+  fraction=rnorm(n=100, mean = 0.5, sd = 0.2)
+)
+
+head(df)
+```
+
+
+The violin function takes a very specific format, so we'll transform the 
+data.frame from above using the 'build_cellcontent_barplot_df2' function.
+It essentially gives it a tidy format with generic column names.
+
+
+```{r}
+
+
+  notebook_violinplot(
+    df, 
+    y_col = 'Wound Healing',        # plot this feature
+    scale_func_choice = 'Log2 + 1', # how to scale the feature
+    reorder_func_choice = "Mean",   # how to reorder the feature
+    fill_colors = NULL,             # color scheme
+    points = F,                     # show outliers
+    showlegend = T,  # T or F       # show legend
+    ylab = 'Wound Healing',             
+    xlab = 'Immune Subtype',
+    title = 'Leukocyte Fraction by Immune Subtype')
+
+```
+
+
+
+```{r}
+
+  notebook_boxplot(
+    df, 
+    y_col = 'leukocyte_fraction',  # filter to this feature
+    scale_func_choice = 'None', # how to scale the feature
+    reorder_func_choice = "Mean",   # how to reorder the feature
+    fill_colors = NULL,
+    ylab = 'Leukocyte Fraction', 
+    xlab = 'Immune Subtype',
+    title = 'Leukocyte Fraction by Immune Subtype')
+
+```
+
+
