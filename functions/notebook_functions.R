@@ -1,3 +1,6 @@
+
+### Notebook functions ###
+
 se <- function(x){
   mean(x) / sqrt(length(x))
 }
@@ -71,6 +74,29 @@ create_label <- function(
   assert_df_has_rows(result_df)
   return(result_df)
   
+}
+
+
+notebook_corr <- function(response_df, var_df, method = 'spearman') {
+  
+  # need to have GROUP in response_df
+  shared_ids <- unique(response_df$ParticipantBarcode, var_df$ParticipantBarcode)
+  res2_df <- response_df[match(response_df$ParticipantBarcode, table = shared_ids), ]
+  var2_df <- var_df[match(var_df$ParticipantBarcode, table = shared_ids), ]
+  
+  
+  res_list <- list()
+  # for each group in response_df
+  for (gi in unique(res2_df$GROUP)) {
+    yi <- res2_df %>% dplyr::filter(GROUP == gi) %>% dplyr::select(value)
+    zi <- var2_df %>% dplyr::filter(GROUP == gi) %>% dplyr::select(-GROUP, -ParticipantBarcode)
+    res_list[[gi]] <- cor(yi, zi, use = 'pairwise.complete.obs', method = method)  
+  }
+  
+  res_mat <- as.matrix(do.call('rbind', res_list))
+  rownames(res_mat) <- names(res_list)
+  
+  return(res_mat)
 }
 
 
@@ -177,6 +203,94 @@ build_distribution_plot_df2 <- function(
 }
 
 
+get_iatlas_feature <- function(
+  group = 'Subtype_Immune_Model_Based',  ## Subtype_Immune_Model_Based or Study
+  group_filter='None',                   ## List of group IDs we want like KICH 
+  group_mod = 'iAtlas_',
+  feature_name = 'leukocyte_fraction',
+  return_barcodes = F,
+  fraction_format = F
+  ){
+  
+  # read in the "feature matrix" (fmx)
+  iatlas_fmx <- feather::read_feather('data/fmx_df.feather')
+  
+  if (return_barcodes) {
+    group_fmx <- iatlas_fmx %>% select(!!group, !!feature_name, ParticipantBarcode)
+  } else {
+    # let's just get the columns we're interested in
+    group_fmx <- iatlas_fmx %>% select(!!group, !!feature_name)
+  }
+  # let's filter out rows we don't want.
+  group_fmx2 <- group_fmx[ group_fmx[[group]] %in% group_filter, ]
+  
+  # then we'll annotate the iatlas labels.
+  group_fmx2[[group]] <- sapply(group_fmx2[[group]], function(x) paste0(group_mod,x))
+  
+  # rename the columns
+  if (return_barcodes) {
+    group_fmx3 <- data.frame(GROUP=group_fmx2[[group]],
+                             ParticipantBarcode = group_fmx2$ParticipantBarcode,
+                             feature_name=feature_name,
+                             value=group_fmx2[[feature_name]]
+                             )
+  } else {
+    group_fmx3 <- data.frame(GROUP=group_fmx2[[group]],
+                             feature_name=feature_name,
+                             value=group_fmx2[[feature_name]])
+  }
+  
+  if (fraction_format) {
+    colnames(group_fmx3) <- c('GROUP', 'fraction_type', 'fraction')
+  }
+  
+  return(group_fmx3)
+}
+
+
+list_iatlas_feature_sets <- function(){
+  feature_df <- feather::read_feather('data/feature_df.feather')
+  table(feature_df$`Variable Class`)
+}
+
+
+# return a dataset with group, barcode, and columns of vars
+get_iatlas_feature_set <- function(group='Study', 
+                                    group_filter=c('KICH', 'KIRC'),
+                                    group_mod = 'iAtlas_',
+                                    feature_set = 'T Helper Cell Score',
+                                    return_barcodes = T,
+                                    format = 'wide') {
+  
+  # read in the "feature matrix" (fmx)
+  iatlas_fmx <- feather::read_feather('data/fmx_df.feather')
+  
+  # read in the feature sets
+  feature_df <- feather::read_feather('data/feature_df.feather')
+
+  
+  feature_names <- feature_df %>% 
+    dplyr::filter(`Variable Class` == !!feature_set) %>%
+    dplyr::select(FeatureMatrixLabelTSV) %>% 
+    pull()
+  
+  if (return_barcodes) {
+    # first get the columns we need
+    group_fmx <- iatlas_fmx %>% select(!!group, ParticipantBarcode, !!feature_names)
+  } else {
+    # let's just get the columns we're interested in
+    group_fmx <- iatlas_fmx %>% select(!!group, ParticipantBarcode, !!feature_name, !!feature_names)
+  }
+  
+  # let's filter out rows we don't want.
+  group_fmx2 <- group_fmx[ group_fmx[[group]] %in% group_filter, ]
+  # then we'll annotate the iatlas labels.
+  group_fmx2[[group]] <- sapply(group_fmx2[[group]], function(x) paste0(group_mod,x))
+                                
+  colnames(group_fmx2)[1] <- 'GROUP'
+  return(group_fmx2)
+}
+
 
 
 notebook_barplot <- function(
@@ -241,7 +355,7 @@ notebook_barplot <- function(
 
 
 notebook_violinplot <- function(
-  df,
+  data,
   y_col,
   scale_func_choice = 'None',
   reorder_func_choice = 'None',
@@ -254,12 +368,12 @@ notebook_violinplot <- function(
 ) {
 
   # fix it if written like normal human
-  if (colnames(df)[1] == 'Group') {
-    colnames(df)[1] <- 'GROUP'
+  if (colnames(data)[1] == 'Group') {
+    colnames(data)[1] <- 'GROUP'
   }
   
   # need columns to have specific names. 
-  if (! all(colnames(df) %in% c('GROUP', 'fraction_type', 'fraction')) ){
+  if (! all(colnames(data) %in% c('GROUP', 'fraction_type', 'fraction')) ){
     print('error: please use GROUP, fraction_type, fraction as column names for df')
     return()
   }
@@ -270,13 +384,13 @@ notebook_violinplot <- function(
   #  return()
   #}
   
-  violin_df <- build_distribution_plot_df2(df,
+  violin_df <- build_distribution_plot_df2(data,
                                           ysel=y_col,
                                           scale_func_choice = scale_func_choice,
                                           reorder_choice = reorder_func_choice)
 
   iatlas.modules::plotly_violin(
-    data = violin_df, 
+    plot_data = violin_df, 
     x_col = 'x', 
     y_col = 'y',
     fill_colors=fill_colors,
@@ -292,8 +406,7 @@ notebook_violinplot <- function(
 
 
 notebook_boxplot <- function(
-  
-  df,
+  data,
   y_col,
   scale_func_choice = 'None',
   reorder_func_choice = 'None',
@@ -304,25 +417,25 @@ notebook_boxplot <- function(
 ) {
   
   # fix it if written like normal human
-  if (colnames(df)[1] == 'Group') {
-    colnames(df)[1] <- 'GROUP'
+  if (colnames(data)[1] == 'Group' | colnames(data)[1] == 'group') {
+    colnames(data)[1] <- 'GROUP'
   }
   
   # need columns to have specific names. 
-  if (! all(colnames(df) %in% c('GROUP', 'fraction_type', 'fraction')) ){
+  if (! all(colnames(data) %in% c('GROUP', 'fraction_type', 'fraction')) ){
     print('error: please use GROUP, fraction_type, fraction as column names for df')
     return()
   }
   
   # check for function names and reorder choices
   
-  box_df <- build_distribution_plot_df2(df,
+  box_df <- build_distribution_plot_df2(data,
                                         ysel=y_col,
                                         scale_func_choice = scale_func_choice,
                                         reorder_choice = reorder_func_choice)
   
   iatlas.modules::plotly_box(
-    data = box_df, 
+    plot_data = box_df, 
     x_col = 'x', 
     y_col = 'y',
     fill_colors=fill_colors,
@@ -333,4 +446,161 @@ notebook_boxplot <- function(
   
 }
 
+
+############
+# ############
+# 
+# build_immunefeatures_df <- function(
+#   df,
+#   group_column,
+#   value1_column,
+#   value2_columns,
+#   group_options,
+#   id_column = "ParticipantBarcode"){
+#   
+#   assert_df_has_columns(
+#     df, c(group_column, value1_column, value2_columns, id_column))
+#   
+#   result_df <- df %>%
+#     dplyr::select(
+#       ID = id_column,
+#       GROUP = group_column,
+#       VALUE1 = value1_column,
+#       value2_columns) %>%
+#     dplyr::filter(GROUP %in% group_options) %>%
+#     dplyr::filter(!is.na(VALUE1))
+#   return(result_df)
+# }
+# 
+# 
+# build_immunefeatures_df(
+#   subset_df(),
+#   group_column = group_internal_choice(),
+#   value1_column = input$heatmap_values,
+#   value2_columns = hm_variables(),
+#   group_options = sample_groups,
+#   id_column = "ParticipantBarcode"
+# )
+# 
+# 
+create_heatmap <- function(corr_mat, 
+                           title = '', 
+                           scale_colors = F,  
+                           legend_title = NULL,
+                           source_name = ''){
+  zmin <- NULL
+  zmax <- NULL
+  if(scale_colors){
+    extreme <- max(abs(min(corr_mat)),
+                   abs(max(corr_mat)))
+    zmax <- extreme
+    zmin <- -extreme
+  }
+
+  p <-
+    plotly::plot_ly(
+      z = corr_mat,
+      x = colnames(corr_mat),
+      y = rownames(corr_mat),
+      type = "heatmap",
+      source = source_name,
+      colors = rev(RColorBrewer::brewer.pal(8, "RdBu")),
+      colorbar = list(title = legend_title),
+      zmin = zmin,
+      zmax = zmax
+    ) %>%
+    plotly::layout(
+      title = title,
+      xaxis = list(tickangle = 90)
+    )
+  p
+}
+
+
+# 
+# data_df <- {
+#   dplyr::select(
+#     subset_df(),
+#     x = group_internal_choice(),
+#     label = "ParticipantBarcode",
+#     dplyr::everything())
+# }
+# 
+# relationship_df <- {
+#   panimmune_data$feature_df %>%
+#     dplyr::filter(VariableType == "Numeric") %>%
+#     dplyr::select(
+#       INTERNAL = FeatureMatrixLabelTSV,
+#       DISPLAY = FriendlyLabel,
+#       `Variable Class`)
+# }
+# 
+# sample_groups <- get_unique_column_values(
+#   group_internal_choice(), 
+#   subset_df())
+# 
+# 
+# 
+# 
+# build_immunefeatures_correlation_matrix <- function(df, method = "spearman") {
+#   long_df  <- df %>%
+#     dplyr::select(-ID) %>%
+#     tidyr::gather(
+#       key = "VARIABLE",
+#       value = "VALUE2",
+#       -c(GROUP, VALUE1)) %>%
+#     dplyr::group_by(GROUP, VARIABLE) %>%
+#     tidyr::drop_na()
+#   
+#   if(nrow(long_df) == 0) return(long_df)
+#   
+#   result_matrix <- long_df %>%
+#     dplyr::summarise(COR = cor(
+#       VALUE1,
+#       VALUE2,
+#       method = method,
+#       use = "pairwise.complete.obs")) %>%
+#     tidyr::spread(key = "GROUP", value = "COR", fill = NA) %>%
+#     dplyr::left_join(
+#       dplyr::select(
+#         panimmune_data$feature_df, 
+#         FeatureMatrixLabelTSV, 
+#         `Variable Class Order`, 
+#         FriendlyLabel),
+#       by = c("VARIABLE" = "FeatureMatrixLabelTSV")) %>% 
+#     dplyr::arrange(dplyr::desc(`Variable Class Order`)) %>% 
+#     dplyr::select(- c(`Variable Class Order`, VARIABLE)) %>% 
+#     as.data.frame() %>%
+#     tibble::column_to_rownames("FriendlyLabel") %>%
+#     as.matrix()
+# }
+# 
+# 
+# validate(
+#   need(nrow(immunefeatures_df()) > 0, 
+#        "Current selected group and selected variable have no overlap")
+# )
+# 
+# immunefeatures_correlation_matrix <- build_immunefeatures_correlation_matrix(
+#   immunefeatures_df(), 
+#   input$correlation_method)
+# 
+# 
+# create_heatmap(immunefeatures_correlation_matrix, "heatplot", scale_colors = T)
+# 
+# #########
+# #########
+# 
+# build_immunefeatures_scatter_plot_df <- function(df, x_col, group_filter_value){
+#   assert_df_has_columns(df, c(x_col, "VALUE1", "ID", "GROUP"))
+#   df %>%
+#     select(ID, GROUP, y = "VALUE1", x = x_col) %>%
+#     filter(GROUP == group_filter_value) %>%
+#     create_label(
+#       name_column = "ID",
+#       group_column = "GROUP",
+#       value_columns = c("x", "y")) %>%
+#     select("x", "y", "label") %>%
+#     get_complete_df_by_columns(c("x", "y", "label"))
+# }
 

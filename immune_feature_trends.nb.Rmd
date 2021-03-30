@@ -57,7 +57,7 @@ Here's a example simulation.
 ```{r}
 
 df <- data.frame(
-  GROUP = sample(x=c('C1','C2','C3','C4','C5','C6'), size=100, replace=T),
+  GROUP = sample(x=c('A1','A2','A3','A4','A5','A6'), size=100, replace=T),
   fraction_type = sample( c('leukocyte_fraction', 'Wound Healing'), size=100, replace=T),
   fraction=rnorm(n=100, mean = 0.5, sd = 0.2)
 )
@@ -70,12 +70,31 @@ The violin function takes a very specific format, so we'll transform the
 data.frame from above using the 'build_cellcontent_barplot_df2' function.
 It essentially gives it a tidy format with generic column names.
 
+# How to use the function
+
+Parameters available:
+
+  - y_col:  what do you want to plot?
+  
+  - scale_func_choice: the values can be transformed by log2, log2+1, log10, log10+1, or None (default)
+  
+  - reorder_func_choice: reorders the x-axis depending on the: mean, median, max, min, or None (default)
+  
+  - fill_colors
+  
+  - points
+  
+  - showlegend: T or F shows the legend (default is on)
+
+  - plot labels: ylab, xlab, title
+
+
 
 ```{r}
 
 
   notebook_violinplot(
-    df, 
+    data = df, 
     y_col = 'Wound Healing',        # plot this feature
     scale_func_choice = 'Log2 + 1', # how to scale the feature
     reorder_func_choice = "Mean",   # how to reorder the feature
@@ -93,7 +112,7 @@ It essentially gives it a tidy format with generic column names.
 ```{r}
 
   notebook_boxplot(
-    df, 
+    data = df, 
     y_col = 'leukocyte_fraction',  # filter to this feature
     scale_func_choice = 'None', # how to scale the feature
     reorder_func_choice = "Mean",   # how to reorder the feature
@@ -103,5 +122,126 @@ It essentially gives it a tidy format with generic column names.
     title = 'Leukocyte Fraction by Immune Subtype')
 
 ```
+
+
+# Plot your results with iAtlas results.
+
+
+
+Let us then create a new data.frame that can be merged with the simulated data above.
+Since we're grouping the barplots, we want to make sure the iatlas groups have
+different names compared to your groups... even if they represent fundementaly
+the same thing (i.e. C2).
+
+```{r}
+
+iatlas_df <- get_iatlas_feature(group='Subtype_Immune_Model_Based', 
+                                group_filter=c('C1', 'C2'),
+                                group_mod = 'iAtlas_',
+                                feature_name = 'leukocyte_fraction',
+                                fraction_format = T)
+
+
+# and we can merge in our data from above
+new_df <- rbind(df, iatlas_df)
+
+new_df
+```
+
+
+
+```{r}
+
+  notebook_boxplot(
+    new_df, 
+    y_col = 'leukocyte_fraction',  # filter to this feature
+    scale_func_choice = 'None', # how to scale the feature
+    reorder_func_choice = "Mean",   # how to reorder the feature
+    fill_colors = NULL,
+    ylab = 'Leukocyte Fraction', 
+    xlab = 'Groups',
+    title = 'Leukocyte Fraction by Immune Subtype')
+
+```
+
+
+
+Or by study:
+
+```{r}
+
+iatlas_df <- get_iatlas_feature(group='Study', 
+                                group_filter=c('KICH', 'KIRC'),
+                                group_mod = 'iAtlas_',
+                                feature_name = 'leukocyte_fraction',
+                                fraction_format = T)
+
+# and we can merge in our data from above
+new_df <- rbind(df, iatlas_df)
+
+notebook_boxplot(
+    new_df, 
+    y_col = 'leukocyte_fraction',  # filter to this feature
+    scale_func_choice = 'None', # how to scale the feature
+    reorder_func_choice = "Mean",   # how to reorder the feature
+    fill_colors = NULL,
+    ylab = 'Leukocyte Fraction', 
+    xlab = 'Groups',
+    title = 'Leukocyte Fraction by Immune Subtype')
+
+```
+
+
+# Correlation Heatmaps
+
+
+In this case we'll assume you have some immune features computed for each sample
+with TCGA sample IDs.
+
+
+What we want:
+have some new data that's calculated from TCGA
+
+Want to correlate that with a set of vars.
+and plot
+
+```{r}
+# get a list of feature sets
+list_iatlas_feature_sets()
+
+```
+
+
+```{r}
+
+# This will be the Response variable that will be correlated with a set of iatlas features
+response_df <- get_iatlas_feature(group='Study', 
+                                group_filter=c('KICH', 'KIRC'),
+                                group_mod = '',
+                                feature_name = 'leukocyte_fraction',
+                                return_barcodes = T)
+
+# then we need a table of Variables
+var_df <- get_iatlas_feature_set(group='Study', 
+                                group_filter=c('KICH', 'KIRC'),
+                                group_mod = '',
+                                feature_set = 'T Helper Cell Score', # feature set name # list_iatlas_feature_sets()
+                                return_barcodes = T,
+                                format = 'wide')
+
+# next we need to compute the correlations between them
+# Need to have reponse_df have GROUP first column
+# Need a column called 'value'
+# Need column called 'ParticipantBarcode' to match to TCGA
+corr_mat <- notebook_corr(response_df, var_df)
+
+# and then we can 
+create_heatmap(corr_mat = corr_mat, title = 'Leukocyte fraction correlations')
+
+```
+
+
+
+
 
 
