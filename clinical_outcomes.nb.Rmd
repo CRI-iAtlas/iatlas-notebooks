@@ -1,0 +1,106 @@
+---
+title: "CRI iAtlas -- clinical outcomes"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+First we are going to install the iAtlas-modules package to gain access to plotting functions.
+
+```{r}
+packages = c("magrittr", "wrapr", "dplyr", "feather", "tidyr", "survival", "survminer")
+
+sapply(packages, function(x) {
+  if (!require(x,character.only = TRUE))
+    install.packages(x)
+    library(x,character.only = TRUE)
+})
+
+# and our iatlas package from github
+if (!require(iatlas.modules)) {
+  devtools::install_github("CRI-iAtlas/iatlas.modules")
+  library(iatlas.modules)
+}
+
+```
+
+We have a collection of helper functions in the 'notebook_functions.R' file. Let's bring it in.
+
+```{r}
+source('functions/notebook_functions.R')
+```
+
+
+# Survival plots
+
+These plots are used quite frequently in the cancer literature, let's learn what they express and 
+how to make them, even using your own data.
+
+We'll need a data.frame with the following columns:
+
+Group         ## (could be anything, but immune subytpe is a good choice.)
+fraction_type ## c(leukocyte_fraction, Tumor_fraction, Stromal_fraction)
+fraction      ## a numeric value.
+
+Here's a example simulation.
+
+```{r}
+
+sim_event <- function(p, time_pts) {
+  # we are going to simulate how long it takes before an event happens, 
+  # given there's a probability of it happening each time click
+  # at some point, it doesn't happen. That's when the trial ends.
+  ps = runif(n=time_pts)
+  # did it happen?
+  qs <- which(ps <= p)
+  if(length( which(ps <= p) ) == 0) {
+    return(time_pts)
+  } else {
+    return(min(qs))
+  }
+}
+
+
+days <- 500
+p1 <- 0.01
+p2 <- 0.10
+
+# first simulate whether the event happened
+group1 <- sapply(1:100, function(a) sim_event(p=p1, days))
+group2 <- sapply(1:100, function(a) sim_event(p=p2, days))
+# then the status, depending on the given time
+status1 <- sapply(group1, function(a) if (a >= days) {0} else {1})
+status2 <- sapply(group2, function(a) if (a >= days) {0} else {1})
+  
+
+df <- data.frame(Group=c(rep.int('group_a', 100), rep.int('group_b', 100)), 
+                 OS_time=c(group1, group2),
+                 Status=c(status1, status2))
+
+survival_df <- build_survival_df(df=df, group_column = 'Group', group_options = 'Group', time_column = 'OS_time', status_column='Status', div_range = 'median', k=2 ) 
+
+fit <- survival::survfit(survival::Surv(time, status) ~ variable, data = survival_df)
+
+
+notebook_kmplot(
+   fit = fit,
+   df = survival_df,
+   confint = FALSE,
+   risktable = FALSE,
+   title = 'my first plot',
+   subtitle = 'with subtitle',
+   group_colors = TRUE)
+```
+
+
+
+#     
+
+
+ 
+    
+
+
+

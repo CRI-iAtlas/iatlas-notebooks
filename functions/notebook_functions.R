@@ -517,6 +517,166 @@ create_heatmap <- function(corr_mat,
 }
 
 
+
+# ** Clinical outcomes module ----
+
+build_survival_df <- function(df, group_column, group_options, time_column, status_column=NULL, div_range, k, group_choice = NULL, group_subset = NULL) {
+  
+  # subset to a smaller group of samples #
+  if(!is.null(group_choice)){
+    if (group_choice == 'Study' & group_subset != 'All') {
+      
+      df <- df  %>% dplyr::filter(Study == UQ(group_subset))
+      
+    } else if (group_choice == 'Subtype_Immune_Model_Based' & group_subset != 'All') {
+      
+      df <- df %>% dplyr::filter(Subtype_Immune_Model_Based == UQ(group_subset))
+      
+    } else if (group_choice == 'Subtype_Curated_Malta_Noushmehr_et_al' & group_subset != 'All') {
+      
+      df <- df %>% dplyr::filter(Subtype_Curated_Malta_Noushmehr_et_al == UQ(group_subset))
+      
+    }
+  }
+  
+  get_groups <- function(df, group_column, k) {
+    
+    if (group_column %in% group_options) { # then we don't need to produce catagories.
+      
+      as.character(df[[group_column]])
+    }
+    else {
+      
+      if (div_range == 'median') {
+        
+        as.character( ifelse (df[[group_column]] < median(df[[group_column]], na.rm=T), 
+                              yes='lower half', no='upper half') )
+        
+      } else {
+        
+        as.character(cut(df[[group_column]], k, ordered_result = T))
+      }
+      
+    }
+    
+  }
+  
+  # get the vectors associated with each term
+  # if facet_column is already a catagory, just use that.
+  # otherwise it needs to be divided into k catagories.
+  groups <- get_groups(df, group_column, k)
+  
+  if (is.null(status_column)) {
+    if (time_column == "OS_time") {
+      status_column <- "OS"
+    } else {
+      status_column <- "PFI_1"
+    }
+  }
+  
+  data.frame(
+    status = purrr::pluck(df, status_column), 
+    time = purrr::pluck(df, time_column),
+    group = groups,
+    variable = groups, 
+    measure = purrr::pluck(df, group_column)
+  ) %>% 
+    na.omit()
+}
+
+
+
+get_concordance <- function(
+  df, value_column, time_column, status_column
+) {
+  wrapr::let(
+    alias = c(valuevar = value_column,
+              timevar = time_column,
+              statusvar = status_column),
+    mat <- df %>% 
+      dplyr::select(valuevar, timevar, statusvar) %>% 
+      .[complete.cases(.),] %>% 
+      as.data.frame() %>% 
+      as.matrix()
+  )
+  
+  concordanceIndex::concordanceIndex(mat[,1], mat[,-1])
+}
+
+
+get_concordance_by_group <- function(
+  df, value_columns, time_column, status_column
+) {
+  value_columns %>% 
+    purrr::map(function(f) get_concordance(df, f, time_column, status_column)) %>% 
+    magrittr::set_names(value_columns)
+}
+
+
+build_ci_mat <- function(
+  df, group_column, value_columns, time_column, status_column
+) {
+  
+  value_names <- purrr::map(value_columns, get_variable_display_name)
+  group_v <- magrittr::extract2(df, group_column) 
+  groups <- group_v %>% 
+    unique() %>% 
+    purrr::discard(is.na(.)) %>% 
+    sort()
+  
+  df %>% 
+    split(group_v) %>% 
+    purrr::map(get_concordance_by_group, value_columns, time_column, status_column) %>% 
+    unlist() %>% 
+    unname() %>% 
+    matrix(ncol = length(groups)) %>%
+    magrittr::set_rownames(value_names) %>% 
+    magrittr::set_colnames(groups)
+}
+
+
+
+notebook_kmplot <- function(fit, 
+                            df, 
+                            confint =FALSE, 
+                            risktable =FALSE, 
+                            title='', subtitle = NULL, 
+                            group_colors, 
+                            facet = FALSE) {
+  
+
+  if(!is.null(subtitle)){
+    long_title <- paste0(title, '\n', subtitle)
+  }else{
+    long_title <- title
+  }
+  
+  if(facet == FALSE){
+    survminer::ggsurvplot(
+      fit,
+      data = df,
+      conf.int = confint,
+      risk.table = risktable,
+      title = long_title,
+      palette = group_colors
+    )
+  }else{
+    survminer::ggsurvplot_list(
+      fit,
+      data = df,
+      pval = TRUE,
+      pval.method = TRUE,
+      conf.int = confint,
+      risk.table = risktable,
+      title = long_title,
+      palette = group_colors
+    )
+    
+  }
+  
+}
+
+
 # 
 # data_df <- {
 #   dplyr::select(
