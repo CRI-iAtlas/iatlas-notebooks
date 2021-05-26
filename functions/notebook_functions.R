@@ -518,12 +518,13 @@ create_heatmap <- function(corr_mat,
 
 
 
-# ** Clinical outcomes module ----
+# ---- Clinical outcomes module ---- #
 
-build_survival_df <- function(df, group_column, group_options, time_column, status_column=NULL, div_range, k, group_choice = NULL, group_subset = NULL) {
+build_survival_df <- function(df, var_column, time_column, status_column=NULL, div_method=NULL, k, group_choice = NULL, group_subset = NULL) {
   
   # subset to a smaller group of samples #
   if(!is.null(group_choice)){
+    
     if (group_choice == 'Study' & group_subset != 'All') {
       
       df <- df  %>% dplyr::filter(Study == UQ(group_subset))
@@ -539,24 +540,23 @@ build_survival_df <- function(df, group_column, group_options, time_column, stat
     }
   }
   
-  get_groups <- function(df, group_column, k) {
+  get_groups <- function(df, div_method, var_column, k) {
+
+    if (is.null(div_method) | div_method == 'group' | div_method =='Group') {
+      
+      as.character(df[[var_column]])
     
-    if (group_column %in% group_options) { # then we don't need to produce catagories.
-      
-      as.character(df[[group_column]])
-    }
-    else {
-      
-      if (div_range == 'median') {
-        
-        as.character( ifelse (df[[group_column]] < median(df[[group_column]], na.rm=T), 
-                              yes='lower half', no='upper half') )
-        
-      } else {
-        
-        as.character(cut(df[[group_column]], k, ordered_result = T))
       }
-      
+    
+    else  if (div_method == 'median') {
+          
+        as.character( ifelse (df[[var_column]] < median(df[[var_column]], na.rm=T), 
+                                yes='lower half', no='upper half') )
+      }
+    
+    else if (div_method == 'cut') {
+          
+          as.character(cut(df[[var_column]], k, ordered_result = T))
     }
     
   }
@@ -564,22 +564,14 @@ build_survival_df <- function(df, group_column, group_options, time_column, stat
   # get the vectors associated with each term
   # if facet_column is already a catagory, just use that.
   # otherwise it needs to be divided into k catagories.
-  groups <- get_groups(df, group_column, k)
-  
-  if (is.null(status_column)) {
-    if (time_column == "OS_time") {
-      status_column <- "OS"
-    } else {
-      status_column <- "PFI_1"
-    }
-  }
+  groups <- get_groups(df, div_method, var_column, k)
   
   data.frame(
     status = purrr::pluck(df, status_column), 
     time = purrr::pluck(df, time_column),
     group = groups,
     variable = groups, 
-    measure = purrr::pluck(df, group_column)
+    measure = purrr::pluck(df, var_column)
   ) %>% 
     na.omit()
 }
@@ -640,7 +632,8 @@ notebook_kmplot <- function(fit,
                             df, 
                             confint =FALSE, 
                             risktable =FALSE, 
-                            title='', subtitle = NULL, 
+                            title='', 
+                            subtitle = NULL, 
                             group_colors, 
                             facet = FALSE) {
   

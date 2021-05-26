@@ -9,7 +9,8 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 
 First we are going to install the iAtlas-modules package to gain access to plotting functions.
 
-```{r}
+```{r,include=FALSE}
+
 packages = c("magrittr", "wrapr", "dplyr", "feather", "tidyr", "survival", "survminer")
 
 sapply(packages, function(x) {
@@ -44,14 +45,19 @@ Group         ## (could be anything, but immune subytpe is a good choice.)
 fraction_type ## c(leukocyte_fraction, Tumor_fraction, Stromal_fraction)
 fraction      ## a numeric value.
 
-Here's a example simulation.
+Our first simulation is going to have two curves, based on group membership.
+Each simulated-sample will have a time, a censor status, and a group membership.
+The censor status lets us know if the event happened, or if the study timed out.
+It's also possible for a sample to be censored due to simply dropping out of the 
+study, but we won't have that here.
 
 ```{r}
 
+# We are going to simulate how long it takes before an event happens, 
+# given there's a probability of it happening each time click
+# at some point, it doesn't happen. That's when the trial ends.
+
 sim_event <- function(p, time_pts) {
-  # we are going to simulate how long it takes before an event happens, 
-  # given there's a probability of it happening each time click
-  # at some point, it doesn't happen. That's when the trial ends.
   ps = runif(n=time_pts)
   # did it happen?
   qs <- which(ps <= p)
@@ -63,40 +69,79 @@ sim_event <- function(p, time_pts) {
 }
 
 
+# our simulation parameters
 days <- 500
-p1 <- 0.01
-p2 <- 0.10
+p1 <- 0.01  # event probability for group 1
+p2 <- 0.10  # event probability for group 2
 
 # first simulate whether the event happened
-group1 <- sapply(1:100, function(a) sim_event(p=p1, days))
-group2 <- sapply(1:100, function(a) sim_event(p=p2, days))
+events1 <- sapply(1:100, function(a) sim_event(p=p1, days))
+events2 <- sapply(1:100, function(a) sim_event(p=p2, days))
+
 # then the status, depending on the given time
+# 1 if the event happened, and 0 if it's censored
 status1 <- sapply(group1, function(a) if (a >= days) {0} else {1})
 status2 <- sapply(group2, function(a) if (a >= days) {0} else {1})
   
 
 df <- data.frame(Group=c(rep.int('group_a', 100), rep.int('group_b', 100)), 
-                 OS_time=c(group1, group2),
+                 Time=c(events1, events2),
                  Status=c(status1, status2))
 
-survival_df <- build_survival_df(df=df, group_column = 'Group', group_options = 'Group', time_column = 'OS_time', status_column='Status', div_range = 'median', k=2 ) 
+# take a look at our dataframe
+head(df)
+```
 
+First we'll format the dataframe into what's needed by iAtlas functions.
+Then we'll build the survival data.frame, fit the model, and use the iAtlas
+notebook function to plot the survival curves.
+
+```{r, fig1, fig.height = 7}
+
+# 
+# the build survival function takes the following arguments
+# df: the data frame 
+# var_column: the variable to divide, groups or numerical
+# time_column: column name in df with times
+# status_column: column name in df with cencor statuses
+# div_method: how the var_column should be divided, choices are 'group', 'median', or 'cut'
+# k: if the div_method is 'cut', then cut into k parts.
+# group_choice = NULL, ## probably delete ## for TCGA groups
+#group_subset = NULL
+
+survival_df <- build_survival_df(df=df, var_column = 'Group', time_column = 'Time', status_column='Status', div_method = "Group" ) 
+#head(survival_df)
+
+# then we'll fit the survival model
 fit <- survival::survfit(survival::Surv(time, status) ~ variable, data = survival_df)
 
 
+# and make a plot
 notebook_kmplot(
    fit = fit,
    df = survival_df,
-   confint = FALSE,
-   risktable = FALSE,
-   title = 'my first plot',
-   subtitle = 'with subtitle',
-   group_colors = TRUE)
+   confint = TRUE,
+   risktable = TRUE,
+   title = 'survival simulation plot',
+   subtitle = '',
+   group_colors = TRUE,
+   facet=TRUE)
 ```
 
+```{r}
 
+# and make a plot
+notebook_kmplot(
+   fit = fit,
+   df = survival_df,
+   confint = TRUE,
+   risktable = TRUE,
+   title = 'survival simulation plot',
+   subtitle = '',
+   group_colors = TRUE,
+   facet=TRUE)
 
-#     
+```
 
 
  
