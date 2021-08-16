@@ -21,6 +21,18 @@ In this repository, you'll find a collection of notebooks enabling the integrati
 
 Please see `our landing page`_ for more information. If you'd like to contribute please open an issue or create a pull request.
 
+**Notebooks**
+
+    1. `Cell content barplots`_
+        plot estimated cell type contents against samples in our database
+
+    2. `Clinical outcomes`_
+        plot survival curves comparing your data to samples in our database
+    
+    3. `Immune feature trends`_
+        investigate using our collection of immune features
+
+
 **How to Cite Us**
 
 If these notebooks are useful, please cite the CRI iAtlas paper (PubMed: 33214875). Thank you!
@@ -33,4 +45,10 @@ Follow @iatlas_cri on Twitter for latest developments!
 
 
 .. _our landing page: https://cri-iatlas.org
+
+.. _Cell content barplots: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/cell_content_barplots.ipynb
+
+.. _Clinical outcomes: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/clinical_outcomes.ipynb
+
+.. _Immune feature trends: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/immune_feature_trends.ipynb
 
