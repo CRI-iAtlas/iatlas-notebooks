@@ -10,7 +10,7 @@ The CRI-iAtlas Notebooks
     <p align="center">
         <a href="https://cri-iatlas.org">
             <img src="https://www.cri-iatlas.org/img/background1.png"
-             width="200px" alt="iatlas logo">
+             width="400px" alt="iatlas logo">
         </a>
     </p>
 
