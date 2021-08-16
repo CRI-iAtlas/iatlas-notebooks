@@ -35,7 +35,7 @@ Please see `our landing page`_ for more information. If you'd like to contribute
 
 **How to Cite Us**
 
-If you find these notebooks useful, please cite the CRI iAtlas paper (PubMed: 33214875). Thank you!
+If you find these notebooks useful, please cite the CRI iAtlas paper (PubMed: `33214875`_). Thank you!
 
     Eddy JA, Thorsson V, Lamb AE, Gibbs DL, Heimann C, Yu JX, Chung V, Chae Y, Dang K, Vincent BG, Shmulevich I, Guinney J. 
     CRI iAtlas: an interactive portal for immuno-oncology research. F1000Research 2020, 9:1028.
@@ -52,3 +52,4 @@ and follow @iatlas_cri on Twitter for latest developments!
 
 .. _Immune feature trends: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/immune_feature_trends.ipynb
 
+.. _33214875: https://pubmed.ncbi.nlm.nih.gov/33214875/
