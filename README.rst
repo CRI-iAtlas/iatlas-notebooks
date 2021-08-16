@@ -2,7 +2,7 @@ The CRI-iAtlas Notebooks
 ========================
 
 
-**Open in Binder**[link to binder]
+**Run in Binder**[link to binder]
 
 
 .. raw:: html
@@ -10,7 +10,7 @@ The CRI-iAtlas Notebooks
     <p align="center">
         <a href="https://cri-iatlas.org">
             <img src="https://www.cri-iatlas.org/img/background1.png"
-             width="400px" alt="iatlas logo">
+             width="300px" alt="iatlas logo">
         </a>
     </p>
 
@@ -35,13 +35,13 @@ Please see `our landing page`_ for more information. If you'd like to contribute
 
 **How to Cite Us**
 
-If these notebooks are useful, please cite the CRI iAtlas paper (PubMed: 33214875). Thank you!
+If you find these notebooks useful, please cite the CRI iAtlas paper (PubMed: 33214875). Thank you!
 
     Eddy JA, Thorsson V, Lamb AE, Gibbs DL, Heimann C, Yu JX, Chung V, Chae Y, Dang K, Vincent BG, Shmulevich I, Guinney J. 
     CRI iAtlas: an interactive portal for immuno-oncology research. F1000Research 2020, 9:1028.
 
 
-Follow @iatlas_cri on Twitter for latest developments!
+and follow @iatlas_cri on Twitter for latest developments!
 
 
 .. _our landing page: https://cri-iatlas.org
