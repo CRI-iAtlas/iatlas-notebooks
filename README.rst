@@ -7,7 +7,7 @@ The CRI-iAtlas Notebooks
 
 .. raw:: html
 
-    <p align="center">
+    <p align="left">
         <a href="https://cri-iatlas.org">
             <img src="https://www.cri-iatlas.org/img/background1.png"
              width="300px" alt="iatlas logo">
