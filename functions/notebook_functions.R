@@ -341,16 +341,17 @@ notebook_barplot <- function(
     reorder_func_choice = reorder_func_choice
   )
   
-  iatlas.modules::plotly_bar(
-    plot_data = barplot_df, 
-    x_col = 'x', 
-    y_col = 'y', 
-    error_col = show_error_bars,   # 'rror' or NA
-    color_col = 'color', 
-    ylab = ylab, 
-    xlab = xlab,
-    title = title)
-  
+  embed_notebook(
+    iatlas.modules::plotly_bar(
+      plot_data = barplot_df, 
+      x_col = 'x', 
+      y_col = 'y', 
+      error_col = show_error_bars,   # 'rror' or NA
+      color_col = 'color', 
+      ylab = ylab, 
+      xlab = xlab,
+      title = title)
+  )  
 }
 
 
