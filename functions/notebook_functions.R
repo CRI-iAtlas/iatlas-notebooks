@@ -248,12 +248,6 @@ get_iatlas_feature <- function(
 }
 
 
-list_iatlas_feature_sets <- function(){
-  feature_df <- feather::read_feather('data/feature_df.feather')
-  table(feature_df$`Variable Class`)
-}
-
-
 # return a dataset with group, barcode, and columns of vars
 get_iatlas_feature_set <- function(group='Study', 
                                     group_filter=c('KICH', 'KIRC'),
@@ -293,6 +287,155 @@ get_iatlas_feature_set <- function(group='Study',
 
 
 
+get_iatlas_survial_feature <- function(
+  group = 'Study',  ## Subtype_Immune_Model_Based or Study
+  group_filter='STAD',                   ## List of group IDs we want like KICH 
+  group_mod = 'iAtlas_',
+  feature_name = 'leukocyte_fraction',
+  survival_feature = 'OS',  # 'OS', 'OS_time', 'PFI_1', 'PFI_time_1'
+  na_rm = TRUE
+  ){
+  
+  # read in the "feature matrix" (fmx)
+  iatlas_fmx <- feather::read_feather('data/fmx_df.feather')
+    
+  # let's filter out rows we don't want.
+  group_fmx <- iatlas_fmx[ iatlas_fmx[[group]] %in% group_filter, ]
+    
+  # let's just get the columns we're interested in
+  if (survival_feature == 'OS') {
+      group_fmx2 <- group_fmx %>% select(!!feature_name, 'OS_time', 'OS')
+  } else {
+      group_fmx2 <- group_fmx %>% select(!!feature_name, 'PFI_time_1', 'PFI_1')
+  }
+  
+  # rename the columns
+  colnames(group_fmx2) <- c('Variable', 'Time', 'Status')
+    
+  if (na_rm) {
+      group_fmx2 <- na.omit(group_fmx2)
+  }
+    
+  return(group_fmx2)
+}
+
+                                
+get_iatlas_survial_feature_set <- function(
+  group = 'Study',  ## Subtype_Immune_Model_Based or Study
+  group_filter='STAD',                   ## List of group IDs we want like KICH 
+  group_mod = 'iAtlas_',
+  feature_name = 'Subtype_Immune_Model_Based',
+  feature_set = 'T Helper Cell Score',
+  survival_feature = 'OS',  # 'OS', 'OS_time', 'PFI_1', 'PFI_time_1'
+  na_rm = TRUE
+  ){
+  
+  # read in the "feature matrix" (fmx)
+  iatlas_fmx <- feather::read_feather('data/fmx_df.feather')
+      
+  # read in the feature sets
+  feature_df <- feather::read_feather('data/feature_df.feather')
+    
+  feature_names <- feature_df %>% 
+    dplyr::filter(`Variable Class` == !!feature_set) %>%
+    dplyr::select(FeatureMatrixLabelTSV) %>% 
+    pull()
+      
+  # let's filter out rows we don't want.
+  group_fmx <- iatlas_fmx[ iatlas_fmx[[group]] %in% group_filter, ]
+    
+  # let's just get the columns we're interested in
+  if (survival_feature == 'OS') {
+      group_fmx2 <- group_fmx %>% select(!!feature_name, 'OS_time', 'OS',  !!feature_names)
+  } else {
+      group_fmx2 <- group_fmx %>% select(!!feature_name, 'PFI_time_1', 'PFI_1',  !!feature_names)
+  }
+  
+  # rename the columns
+  colnames(group_fmx2)[1:3] <- c('Variable', 'Time', 'Status')
+    
+  if (na_rm) {
+      group_fmx2 <- na.omit(group_fmx2)
+  }
+    
+  return(group_fmx2)
+}
+                                
+                            
+                                
+list_iatlas_features <- function(){
+    iatlas_fmx <- feather::read_feather('data/fmx_df.feather')
+    table(colnames(iatlas_fmx))
+}
+
+list_iatlas_feature_sets <- function(){
+  feature_df <- feather::read_feather('data/feature_df.feather')
+  table(feature_df$`Variable Class`)
+}
+                                
+
+                                
+get_concordance <- function(
+  df, value_column, time_column, status_column
+) {
+  wrapr::let(
+    alias = c(valuevar = value_column,
+              timevar = time_column,
+              statusvar = status_column),
+    mat <- df %>% 
+      dplyr::select(valuevar, timevar, statusvar) %>% 
+      .[complete.cases(.),] %>% 
+      as.data.frame() %>% 
+      as.matrix()
+  )
+  
+  concordanceIndex::concordanceIndex(mat[,1], mat[,-1])
+}
+
+
+get_concordance_by_group <- function(
+  df, value_columns, time_column, status_column
+) {
+  value_columns %>% 
+    purrr::map(function(f) get_concordance(df, f, time_column, status_column)) %>% 
+    magrittr::set_names(value_columns)
+}
+
+
+build_ci_mat <- function(
+  df, group_column, value_columns, time_column, status_column
+) {
+  
+  # read in the feature sets
+  feature_df <- feather::read_feather('data/feature_df.feather')
+    
+  #value_names <- purrr::map(value_columns, get_variable_display_name)
+  value_names <- feature_df %>% 
+    dplyr::filter(`Variable Class` == !!feature_set) %>%
+    dplyr::select(FriendlyLabel) %>% 
+    pull()
+    
+  group_v <- magrittr::extract2(df, group_column) 
+  groups <- group_v %>% 
+    unique() %>% 
+    purrr::discard(is.na(.)) %>% 
+    sort()
+  
+  df %>% 
+    split(group_v) %>% 
+    purrr::map(get_concordance_by_group, value_columns, time_column, status_column) %>% 
+    unlist() %>% 
+    unname() %>% 
+    matrix(ncol = length(groups)) %>%
+    magrittr::set_rownames(value_names) %>% 
+    magrittr::set_colnames(groups)
+}
+
+               
+
+
+############## PLOT FUNCTIONS ###################
+
 notebook_barplot <- function(
   df,
   sort_by_var_choice,
@@ -300,7 +443,9 @@ notebook_barplot <- function(
   show_error_bars,
   ylab, 
   xlab,
-  title
+  title,
+  width=600,
+  height=400
 ) {
 
   # fix it if written like normal human
@@ -350,7 +495,9 @@ notebook_barplot <- function(
       color_col = 'color', 
       ylab = ylab, 
       xlab = xlab,
-      title = title)
+      title = title),
+      width,
+      height
   )  
 }
 
@@ -365,7 +512,9 @@ notebook_violinplot <- function(
   showlegend = T,
   ylab = '', 
   xlab = '',
-  title = ''
+  title = '',
+  width=600,
+  height=400
 ) {
 
   # fix it if written like normal human
@@ -390,18 +539,21 @@ notebook_violinplot <- function(
                                           scale_func_choice = scale_func_choice,
                                           reorder_choice = reorder_func_choice)
 
-  iatlas.modules::plotly_violin(
-    plot_data = violin_df, 
-    x_col = 'x', 
-    y_col = 'y',
-    fill_colors=fill_colors,
-    points=points,
-    showlegend=showlegend,
-    ylab = ylab, 
-    xlab = xlab,
-    title = title
-    )
-  
+  embed_notebook(
+      iatlas.modules::plotly_violin(
+        plot_data = violin_df, 
+        x_col = 'x', 
+        y_col = 'y',
+        fill_colors=fill_colors,
+        points=points,
+        showlegend=showlegend,
+        ylab = ylab, 
+        xlab = xlab,
+        title = title
+        ),
+        width,
+        height
+    )  
 }
 
 
@@ -414,8 +566,10 @@ notebook_boxplot <- function(
   fill_colors = NULL,
   ylab = '', 
   xlab = '',
-  title = ''
-) {
+  title = '',
+  width=600,
+  height=400
+  ) {
   
   # fix it if written like normal human
   if (colnames(data)[1] == 'Group' | colnames(data)[1] == 'group') {
@@ -434,61 +588,33 @@ notebook_boxplot <- function(
                                         ysel=y_col,
                                         scale_func_choice = scale_func_choice,
                                         reorder_choice = reorder_func_choice)
-  
-  iatlas.modules::plotly_box(
-    plot_data = box_df, 
-    x_col = 'x', 
-    y_col = 'y',
-    fill_colors=fill_colors,
-    ylab = ylab, 
-    xlab = xlab,
-    title = title
+  embed_notebook(
+      iatlas.modules::plotly_box(
+        plot_data = box_df, 
+        x_col = 'x', 
+        y_col = 'y',
+        fill_colors=fill_colors,
+        ylab = ylab, 
+        xlab = xlab,
+        title = title
+      ),
+      width,
+      height
   )
-  
 }
 
 
 ############
 # ############
 # 
-# build_immunefeatures_df <- function(
-#   df,
-#   group_column,
-#   value1_column,
-#   value2_columns,
-#   group_options,
-#   id_column = "ParticipantBarcode"){
-#   
-#   assert_df_has_columns(
-#     df, c(group_column, value1_column, value2_columns, id_column))
-#   
-#   result_df <- df %>%
-#     dplyr::select(
-#       ID = id_column,
-#       GROUP = group_column,
-#       VALUE1 = value1_column,
-#       value2_columns) %>%
-#     dplyr::filter(GROUP %in% group_options) %>%
-#     dplyr::filter(!is.na(VALUE1))
-#   return(result_df)
-# }
 # 
-# 
-# build_immunefeatures_df(
-#   subset_df(),
-#   group_column = group_internal_choice(),
-#   value1_column = input$heatmap_values,
-#   value2_columns = hm_variables(),
-#   group_options = sample_groups,
-#   id_column = "ParticipantBarcode"
-# )
-# 
-# 
-create_heatmap <- function(corr_mat, 
+notebook_heatmap <- function(corr_mat, 
                            title = '', 
                            scale_colors = F,  
                            legend_title = NULL,
-                           source_name = ''){
+                           source_name = '',
+                           width=500,
+                           height=500){
   zmin <- NULL
   zmax <- NULL
   if(scale_colors){
@@ -514,54 +640,46 @@ create_heatmap <- function(corr_mat,
       title = title,
       xaxis = list(tickangle = 90)
     )
-  p
+  embed_notebook(
+    p,
+    width,
+    height
+  )
 }
 
 
 
 # ---- Clinical outcomes module ---- #
 
-build_survival_df <- function(df, var_column, time_column, status_column=NULL, div_method=NULL, k, group_choice = NULL, group_subset = NULL) {
+build_survival_df <- function(df, var_column, time_column, status_column=NULL, div_method=NULL, k, 
+                              group_choice = NULL, group_subset = NULL) {
   
   # subset to a smaller group of samples #
   if(!is.null(group_choice)){
-    
-    if (group_choice == 'Study' & group_subset != 'All') {
-      
+    if (group_choice == 'Study' & group_subset != 'All') {      
       df <- df  %>% dplyr::filter(Study == UQ(group_subset))
-      
-    } else if (group_choice == 'Subtype_Immune_Model_Based' & group_subset != 'All') {
-      
+    } 
+    else if (group_choice == 'Subtype_Immune_Model_Based' & group_subset != 'All') {  
       df <- df %>% dplyr::filter(Subtype_Immune_Model_Based == UQ(group_subset))
-      
-    } else if (group_choice == 'Subtype_Curated_Malta_Noushmehr_et_al' & group_subset != 'All') {
-      
+    } 
+    else if (group_choice == 'Subtype_Curated_Malta_Noushmehr_et_al' & group_subset != 'All') {  
       df <- df %>% dplyr::filter(Subtype_Curated_Malta_Noushmehr_et_al == UQ(group_subset))
-      
     }
   }
   
   get_groups <- function(df, div_method, var_column, k) {
-
     if (is.null(div_method) | div_method == 'group' | div_method =='Group') {
-      
       as.character(df[[var_column]])
-    
-      }
-    
-    else  if (div_method == 'median') {
-          
+    }    
+    else  if (div_method == 'median') {      
         as.character( ifelse (df[[var_column]] < median(df[[var_column]], na.rm=T), 
                                 yes='lower half', no='upper half') )
-      }
-    
+    }
     else if (div_method == 'cut') {
-          
           as.character(cut(df[[var_column]], k, ordered_result = T))
     }
-    
   }
-  
+
   # get the vectors associated with each term
   # if facet_column is already a catagory, just use that.
   # otherwise it needs to be divided into k catagories.
@@ -578,59 +696,9 @@ build_survival_df <- function(df, var_column, time_column, status_column=NULL, d
 }
 
 
-
-get_concordance <- function(
-  df, value_column, time_column, status_column
-) {
-  wrapr::let(
-    alias = c(valuevar = value_column,
-              timevar = time_column,
-              statusvar = status_column),
-    mat <- df %>% 
-      dplyr::select(valuevar, timevar, statusvar) %>% 
-      .[complete.cases(.),] %>% 
-      as.data.frame() %>% 
-      as.matrix()
-  )
-  
-  concordanceIndex::concordanceIndex(mat[,1], mat[,-1])
-}
-
-
-get_concordance_by_group <- function(
-  df, value_columns, time_column, status_column
-) {
-  value_columns %>% 
-    purrr::map(function(f) get_concordance(df, f, time_column, status_column)) %>% 
-    magrittr::set_names(value_columns)
-}
-
-
-build_ci_mat <- function(
-  df, group_column, value_columns, time_column, status_column
-) {
-  
-  value_names <- purrr::map(value_columns, get_variable_display_name)
-  group_v <- magrittr::extract2(df, group_column) 
-  groups <- group_v %>% 
-    unique() %>% 
-    purrr::discard(is.na(.)) %>% 
-    sort()
-  
-  df %>% 
-    split(group_v) %>% 
-    purrr::map(get_concordance_by_group, value_columns, time_column, status_column) %>% 
-    unlist() %>% 
-    unname() %>% 
-    matrix(ncol = length(groups)) %>%
-    magrittr::set_rownames(value_names) %>% 
-    magrittr::set_colnames(groups)
-}
-
-
-
-notebook_kmplot <- function(fit, 
-                            df, 
+notebook_kmplot <- function(df, 
+                            div_method,
+                            k=2,
                             confint =FALSE, 
                             risktable =FALSE, 
                             title='', 
@@ -645,10 +713,17 @@ notebook_kmplot <- function(fit,
     long_title <- title
   }
   
+  # build the survival dataframe
+  survival_df <- build_survival_df(df=df, var_column = 'Variable', time_column = 'Time', 
+                                   status_column='Status', div_method = div_method, k=k) 
+    
+  # then we'll fit the survival model
+  fit <- survival::survfit(survival::Surv(time, status) ~ variable, data = survival_df)
+  
   if(facet == FALSE){
     survminer::ggsurvplot(
       fit,
-      data = df,
+      data = survival_df,
       conf.int = confint,
       risk.table = risktable,
       title = long_title,
@@ -657,7 +732,7 @@ notebook_kmplot <- function(fit,
   }else{
     survminer::ggsurvplot_list(
       fit,
-      data = df,
+      data = survival_df,
       pval = TRUE,
       pval.method = TRUE,
       conf.int = confint,
@@ -670,6 +745,16 @@ notebook_kmplot <- function(fit,
   
 }
 
+               
+notebook_concordance() {
+    
+    build_ci_mat(    
+  df=df_conc, 
+  group_column ='Variable', 
+  value_columns =c('Th1.cells', 'Th2.cells', 'Th17.cells'), ## get friendly term function wanted here
+  time_column ='Time', 
+  status_column ='Status') 
+}
 
 # 
 # data_df <- {
