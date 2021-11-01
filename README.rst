@@ -2,7 +2,8 @@ The CRI-iAtlas Notebooks
 ========================
 
 
-**Run in Binder**[link to binder]
+.. image:: https://mybinder.org/badge_logo.svg
+ :target: https://mybinder.org/v2/gh/CRI-iAtlas/iatlas-notebooks/HEAD
 
 
 .. raw:: html
