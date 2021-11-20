@@ -460,7 +460,7 @@ build_ci_mat <- function(
                
                
 
-build_survival_df <- function(df, var_column, time_column, status_column=NULL, div_method=NULL, k, 
+build_survival_df <- function(df, var_column, time_column, status_column=NULL, div_method=NULL, k = NULL, 
                               group_choice = NULL, group_subset = NULL) {
   
   # subset to a smaller group of samples #
@@ -801,4 +801,17 @@ notebook_concordance <- function(
                      legend_title = legend_title,
                      width=500,
                      height=500)
+}
+               
+#ici models functions
+get_wide_df <- function(
+    df, 
+    names_from_column, 
+    values_from_column, 
+    columns_to_keep){
+  variables <- unique(df[[names_from_column]])
+  df %>% 
+    tidyr::pivot_wider(., names_from = names_from_column, values_from = values_from_column) %>% 
+    dplyr::group_by(dplyr::across(dplyr::all_of(columns_to_keep))) %>%
+    dplyr::summarise(dplyr::across(dplyr::all_of(variables), na.omit), .groups = "drop")
 }
