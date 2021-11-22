@@ -811,7 +811,7 @@ get_wide_df <- function(
     columns_to_keep){
   variables <- unique(df[[names_from_column]])
   df %>% 
-    tidyr::pivot_wider(., names_from = names_from_column, values_from = values_from_column) %>% 
+    tidyr::pivot_wider(., names_from = dplyr::all_of(names_from_column), values_from = dplyr::all_of(values_from_column)) %>% 
     dplyr::group_by(dplyr::across(dplyr::all_of(columns_to_keep))) %>%
     dplyr::summarise(dplyr::across(dplyr::all_of(variables), na.omit), .groups = "drop")
 }
