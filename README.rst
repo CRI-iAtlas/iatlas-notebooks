@@ -5,6 +5,7 @@ The CRI-iAtlas Notebooks
 .. image:: https://mybinder.org/badge_logo.svg
  :target: https://mybinder.org/v2/gh/CRI-iAtlas/iatlas-notebooks/HEAD
 
+(please use firefox browser with mybinder)
 
 .. raw:: html
 
