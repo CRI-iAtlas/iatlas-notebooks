@@ -3,7 +3,7 @@ The CRI-iAtlas Notebooks
 
 **The Cancer Research Institute (CRI) iAtlas** is an interactive web platform and set of analytic tools for studying interactions between tumors and the immune microenvironment. These tools allow researchers to explore associations between a variety of characterizations of immune response and genomic and clinical phenotypes.
 
-In this repository, you'll find a collection of notebooks that you can run to carry out functionality made available by the iAtlas platform, as well as run and modify to carry out additional functions, such as  enabling the integration of *your* data with what's already in iAtlas. Additionally, you're able to easily visualize the results using our library of plotting functions. You will also find a set of notebooks that illustrate machine learning for possible determinants of molecular response to immune checkpoint inhibition (ICI) therapy, that carry out iAtlas functions using iAtlas's API and database.
+In this repository, you'll find a collection of notebooks that you can run to carry out functionality made available by the iAtlas platform, as well as how carry out additional functions, such as  enabling the integration of *your* data with what's already in iAtlas. Additionally, you're able to easily visualize the results using the iAtlas library of plotting functions. You will also find a set of notebooks that illustrate machine learning for possible determinants of molecular response to immune checkpoint inhibition (ICI) therapy, which carry out iAtlas functions using iAtlas's API and database.
 
 Please see `our landing page`_ for more information. If you'd like to contribute please open an issue or create a pull request.
 
@@ -13,7 +13,7 @@ Notebooks can be run locally (with local package installation), or on the cloud,
 .. image:: https://mybinder.org/badge_logo.svg
  :target: https://mybinder.org/v2/gh/CRI-iAtlas/iatlas-notebooks/HEAD
 
-If running in a browser, Firefox is recommended (due to a particular conflict with plotly R library and Chrome).
+If running in a browser, Firefox is recommended (due to a conflict with the plotly R library and Chrome).
 
 .. raw:: html
 
@@ -29,25 +29,25 @@ If running in a browser, Firefox is recommended (due to a particular conflict wi
 **Notebooks**
 
     1. `Cell content barplots`_
-        plot estimated cell type contents against samples in our database
+        Plot estimated cell type contents against samples in our database
 
     2. `Clinical outcomes`_
-        plot survival curves comparing your data to samples in our database
+        Plot survival curves comparing your data to samples in our database
     
     3. `Immune feature trends`_
-        investigate using our collection of immune features
+        Investigate using our collection of immune features
 
     4. `ICI Models - Elastic Net`_
-        test prediction of molecular response to immune checkpoint inhibition (ICI) with elastic net regression
+        Build an elastic net regression model with ICI data
 
     5. `ICI Models - Logistic Regression`_
-        test prediction of molecular response to ICI with logistic regression models
+        Build a logistic regression model with ICI data
     
     6. `ICI Models - Random Forest`_
-        test prediction of molecular response to ICI with random forest regression models
+        Build a Random Forest model with ICI data
 
     7. `ICI Models - XGboost`_
-        test prediction of molecular response to ICI with gradient boosting
+        Build a eXtreme Gradient Boosting (XGBoost) model with ICI data
 
 
 
