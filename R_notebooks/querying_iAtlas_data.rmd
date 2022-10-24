@@ -1,0 +1,85 @@
+---
+title: "Querying iAtlas Data"
+output: html_notebook
+---
+
+The data hosted by iAtlas is available through an API.
+
+```{r}
+# We have a few libraries to install.
+try({
+  packages = c("magrittr", "dplyr", "tidyr", "dplyr", "tidyr", "ggplot2")
+
+  sapply(packages, function(x) {
+    if (!require(x,character.only = TRUE))
+      install.packages(x)
+    suppressPackageStartupMessages(library(x,character.only = TRUE))
+  })},
+  silent=TRUE
+)
+
+# and our iatlas package from github
+if (!require(iatlasGraphQLClient)) {
+  devtools::install_github("CRI-iAtlas/iatlasGraphQLClient")
+  library(iatlas.modules)
+}
+
+# helper functions
+# git clone the notebook repo to get this file #
+# or see: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/functions/notebook_functions.R
+# setwd('C:/Users/12064/DataspellProjects/iatlas-notebooks')
+source('functions/notebook_functions.R')
+```
+
+Exploring the datasets and features
+
+The iAtlas data is stored in a database that can be queried with functions from the
+iatlasGraphQLClient package. We have clinical data, immune features, scores of
+predictors of response to immunotherapy, and quantile normalized gene expression.
+You can get more information in iAtlas on immune features, and our annotation of
+immunomodulators genes. You can access more information about these
+datasets in iAtlas.
+
+As a first step, let’s take a look at the available datasets.
+
+```{r}
+# datasets that we have in the iAtlas database
+datasets <- iatlasGraphQLClient::query_datasets()
+datasets
+```
+
+Let's count the datasets by type:
+
+```{r}
+table(datasets$type)
+```
+
+Data is also tagged with different descriptive terms which can help
+in finding appropriate data given a particular interest.
+
+```{r}
+# datasets that we have in the iAtlas database
+dataset_tags <- iatlasGraphQLClient::query_dataset_tags()
+table(dataset_tags$tag_name)
+```
+
+Suppose, we're interested in response data.
+
+```{r}
+dataset_tags[dataset_tags$tag_name == 'Response',]
+```
+
+From that list, we might be intested in a particular dataset.
+In order to get the sample IDs associated with that dataset, we use
+the query_dataset_samples function.
+
+```{r}
+dataset_samples <- iatlasGraphQLClient::query_dataset_samples(datasets = "Miao_Science_2018")
+dim(dataset_samples)
+```
+
+OK, so, there's 17 samples in that dataset.
+
+
+
+
