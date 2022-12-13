@@ -31,37 +31,75 @@ datasets <- iatlasGraphQLClient::query_datasets()
 datasets
 ```
 
-Let's count the datasets by type:
+Let's count the datasets by type.
+
 
 ```{r}
 table(datasets$type)
 ```
 
-Data is also tagged with different descriptive terms which can help
-in finding appropriate data given a particular interest.
+Currently there are three types: analysis, ici, and other. Analysis data sets include TCGA and PCAWG data while ici
+datasets relate to immune checkpoint inhibitor studies. Currently, there is only one 'other' type:
+the Genotype-Tissue Expression (GTEx) project which is a resource aimed at healthy normal tissue expression.
+
+Data can be tagged with different descriptive terms which help in finding appropriate data given a particular interest.
 
 ```{r}
 # datasets that we have in the iAtlas database
 dataset_tags <- iatlasGraphQLClient::query_dataset_tags()
+
+# count up the tags
 table(dataset_tags$tag_name)
 ```
 
-Suppose, we're interested in response data.
+Suppose, we're interested in data sets that are tagged as "response data".
 
 ```{r}
+# select the datasets tagged 'Response'
 dataset_tags[dataset_tags$tag_name == 'Response',]
 ```
 
-From that list, we might be intested in a particular dataset.
-In order to get the sample IDs associated with that dataset, we use
-the query_dataset_samples function.
+From that list, a particular dataset might catch our interest. In order to get the sample IDs associated with that dataset,
+we use the query_dataset_samples function.
 
 ```{r}
-dataset_samples <- iatlasGraphQLClient::query_dataset_samples(datasets = "Miao_Science_2018")
+dataset_samples <- iatlasGraphQLClient::query_dataset_samples(datasets = "Riaz_Nivolumab_2017")
+
 dim(dataset_samples)
 ```
+With that table, we see that the dataset contains 17 samples.
 
-OK, so, there's 17 samples in that dataset.
+In order to learn something about those samples, we'll query the sample metadata.
+
+```{r}
+# running this function with no parameters will return the entire table.
+sample_metatdata <- iatlasGraphQLClient::query_sample_patients(samples = dataset_samples$sample_name) #
+
+dim(sample_metatdata)
+```
+In this case we can get patient sex and race.
+
+How many samples per patient?
+
+```{r}
+sample_metatdata %>% select(patient_name, sample_name) %>% unique() %>% dim()
+```
+
+OK, so there's one sample per patient.
+
+
+Get immunomodulator genes.
+query_immunomodulators
+query_genes
+query_io_targets
+
+Use those to query whether these samples had an mutations in those genes.
+query_mutation_statuses
+
+Pick a gene where there was a mutation present,
+then pull down expression data for that gene and visualize it.
+
+
 
 
 
