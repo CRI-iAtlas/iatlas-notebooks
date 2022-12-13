@@ -5,31 +5,14 @@ output: html_notebook
 
 The data hosted by iAtlas is available through an API.
 
+First we load our libraries using the notebook functions.
 ```{r}
-# We have a few libraries to install.
-try({
-  packages = c("magrittr", "dplyr", "tidyr", "dplyr", "tidyr", "ggplot2")
-
-  sapply(packages, function(x) {
-    if (!require(x,character.only = TRUE))
-      install.packages(x)
-    suppressPackageStartupMessages(library(x,character.only = TRUE))
-  })},
-  silent=TRUE
-)
-
-# and our iatlas package from github
-if (!require(iatlasGraphQLClient)) {
-  devtools::install_github("CRI-iAtlas/iatlasGraphQLClient")
-  library(iatlas.modules)
-}
-
-# helper functions
 # git clone the notebook repo to get this file #
-# or see: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/functions/notebook_functions.R
-# setwd('C:/Users/12064/DataspellProjects/iatlas-notebooks')
-source('functions/notebook_functions.R')
+source('https://raw.githubusercontent.com/CRI-iAtlas/iatlas-notebooks/general_db_query/functions/notebook_functions.R')
+#source('functions/notebook_functions.R')
+library_setup()
 ```
+
 
 Exploring the datasets and features
 

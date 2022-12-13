@@ -1,6 +1,26 @@
 
 ### Notebook functions ###
 
+library_setup <- function(){
+  # We have a few libraries to install.
+  try({
+    packages = c("magrittr", "dplyr", "tidyr", "dplyr", "tidyr", "ggplot2")
+
+    sapply(packages, function(x) {
+      if (!require(x,character.only = TRUE))
+        install.packages(x)
+      suppressPackageStartupMessages(library(x,character.only = TRUE))
+    })},
+    silent=TRUE
+  )
+
+  # and our iatlas package from github
+  if (!require(iatlasGraphQLClient)) {
+    devtools::install_github("CRI-iAtlas/iatlasGraphQLClient")
+    library(iatlasGraphQLClient)
+  }
+
+}
                             
                                 
 list_iatlas_features <- function(){
