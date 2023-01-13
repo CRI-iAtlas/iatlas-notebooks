@@ -1,4 +1,4 @@
----
+  ---
 title: "Querying iAtlas Data"
 output: html_notebook
 ---
@@ -66,20 +66,34 @@ table(dataset_tags$tag_name)
 Suppose, we're interested in response data.
 
 ```{r}
-dataset_tags[dataset_tags$tag_name == 'Response',]
+dataset_tags[dataset_tags$tag_name == 'TCGA_Study',]
 ```
 
-From that list, we might be intested in a particular dataset.
+From that list, we might be interested in a particular dataset.
 In order to get the sample IDs associated with that dataset, we use
 the query_dataset_samples function.
 
 ```{r}
-dataset_samples <- iatlasGraphQLClient::query_dataset_samples(datasets = "Miao_Science_2018")
+dataset_samples <- iatlasGraphQLClient::query_dataset_samples(datasets = "TCGA")
 dim(dataset_samples)
 ```
 
-OK, so, there's 17 samples in that dataset.
+OK, so, there's 11,080 samples in the TCGA dataset. Let's see the top of the dataset_samples table.
+
+```{r}
+head(dataset_samples)
+```
 
 
-
-
+```{r}
+d = iatlasGraphQLClient::query_cohorts()
+d[d$dataset_name == 'TCGA',]
+```
+```{r}
+tcga_studies <- iatlasGraphQLClient::query_tags_with_parent_tags(parent_tags = "TCGA_Study")
+tcga_studies
+```
+```{r}
+d = iatlasGraphQLClient::query_tag_samples(parent_tags = "TCGA_Study",tags= c(tag_name = "KICH"))
+d
+```
