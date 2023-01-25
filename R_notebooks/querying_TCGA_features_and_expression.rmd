@@ -1,0 +1,177 @@
+---
+title: "Querying TCGA Features and Expression Data"
+output:
+  html_document:
+    df_print: paged
+---
+
+The data hosted by iAtlas is available through an API.
+
+```{r}
+# git clone the notebook repo to get this file #
+source('https://raw.githubusercontent.com/CRI-iAtlas/iatlas-notebooks/general_db_query/functions/notebook_functions.R')
+#source('functions/notebook_functions.R')
+library_setup()
+```
+
+Exploring the datasets and features
+
+The iAtlas data is stored in a database that can be queried with functions from the
+iatlasGraphQLClient package. We have clinical data, immune features, scores of
+predictors of response to immunotherapy, and quantile normalized gene expression.
+
+You can get more information in iAtlas on immune features, and our annotation of
+immunomodulators genes. You can access more information about these datasets in iAtlas.
+
+As a first step, let’s take a look at the available datasets.
+
+```{r}
+# datasets that we have in the iAtlas database
+datasets <- iatlasGraphQLClient::query_datasets()
+datasets
+```
+
+Let's count the datasets by type.
+
+
+```{r}
+table(datasets$type)
+```
+
+Currently there are three types: analysis, ici, and other. Analysis data sets include TCGA and PCAWG data while ici
+datasets relate to immune checkpoint inhibitor studies. Currently, there is only one 'other' type:
+the Genotype-Tissue Expression (GTEx) project which is a resource aimed at healthy normal tissue expression.
+
+Data can be tagged with different descriptive terms which help in finding appropriate data given a particular interest.
+
+Suppose, we're interested in the analysis data sets.
+
+```{r}
+tcga_studies <- iatlasGraphQLClient::query_tags_with_parent_tags(parent_tags = "TCGA_Study")
+tcga_studies$tag_name
+```
+
+From that list, we might be interested in a particular dataset, for instance 
+Kidney Chromophobe which is shortened to KICH.
+
+In order to get the sample IDs associated with that dataset, we use the 
+query_dataset_samples function.
+
+```{r}
+kich_samples <- iatlasGraphQLClient::query_tag_samples(parent_tags = "TCGA_Study",tags= c(tag_name = "KICH"))
+
+kich_sampleids <- kich_samples$sample_name
+
+length(kich_sampleids)
+
+head(kich_sampleids)
+```
+With that query, we see the dataset contains 65 samples.
+
+To get a list of available features, we can visit the web portal, or make a query for them.
+
+```{r}
+# running this function with no parameters will return the entire table.
+available_features <- iatlasGraphQLClient::query_features(samples=kich_sampleids)
+
+available_features
+```
+
+The features table includes:
+  
+  'name' is the computer-readable name.
+  'display' is the human-readable name.
+  'class' is the type of feature, Clinical, Immune cell proportions etc.
+  'order' 
+  'unit' describes the form of the feature values, Fractions, Counts etc.
+  'method_tag' indicates what method was used to generate the values.
+
+
+In order to access the feature values, we'll use the following query-function.
+To get a table of clinical values, we'll use the 'feature_classes' parameter.
+
+```{r}
+epic_cafs <- iatlasGraphQLClient::query_feature_values(samples = dataset_samples$sample_name, features = 'EPIC_CAFs')
+```
+
+OK, so we've collected the "EPIC CAFs" (display name) of class "EPIC", a method
+for estimating cell content from bulk samples.
+
+To learn more about these features, the portal contains a Data Description,
+located at the bottom of the right hand side.
+
+Let's compare these scores to gene expression. To start with, let's look at the list of immunomodulator genes,
+and genes by gene set name.
+
+```{r}
+immunomodulators <- iatlasGraphQLClient::query_immunomodulators()
+head(immunomodulators)
+```
+
+```{r}
+gene_sets <- iatlasGraphQLClient::query_genes_by_gene_types()
+
+head(table(gene_sets$gene_type_name)) # the list is long!
+```
+
+Now to access some of the gene expression values for analysis.
+
+
+```{r}
+gene_vals <- iatlasGraphQLClient::query_gene_expression(samples = kich_sampleids, entrez = immunomodulators$entrez[1:5])
+```
+
+
+The results are long tables, in order to format them to a wide table, that could 
+be used to join to other data values, we can use the tidyverse 
+
+```{r}
+gene_vals_wide <- tidyr::pivot_wider(data=gene_vals, id_cols = 'sample', names_from = 'hgnc', values_from = 'rna_seq_expr', )
+```
+
+
+We can use dplyr to join these tables by their sample IDs.
+
+```{r}
+df <- dplyr::inner_join(epic_cafs, gene_vals_wide)
+
+head(df)
+```
+
+Now we can make plots using the data table.
+
+```{r}
+
+hist(df$ARG1, main = "ARG1 Expression in KICH", xlab = "Expression level")
+
+```
+
+
+And we can fit models associating the feature values to gene expression.
+
+```{r}
+m1 <- lm(feature_value ~ ADORA2A + ARG1 + BTN3A2 + BTN3A1 + BTLA, data=df)
+
+m1
+
+```
+
+We can plot the model diagnostics.
+
+```{r}
+plot(m1)
+```
+
+
+```{r}
+summary(m1)
+```
+
+And we can plot (potentially) interesting variable relations.
+
+```{r}
+plot(x=df$ARG1, y=df$feature_value, xlab="ARG1", ylab="EPIC CAFs")
+```
+
+Please see https://cri-iatlas.org and let us know if we can help!
+
