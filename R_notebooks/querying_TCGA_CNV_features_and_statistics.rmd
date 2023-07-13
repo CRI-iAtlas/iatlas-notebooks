@@ -1,0 +1,110 @@
+---
+title: "Querying TCGA Features and Expression Data"
+output:
+  html_document:
+    df_print: paged
+---
+
+The data hosted by iAtlas is available through an API.
+
+```{r}
+# git clone the notebook repo to get this file #
+source('https://github.com/CRI-iAtlas/iatlas-notebooks/raw/main/functions/notebook_functions.R')
+#source('functions/notebook_functions.R')
+library_setup()
+library(readr)
+```
+
+Exploring the datasets and features
+
+The iAtlas data is stored in a database that can be queried with functions from the
+iatlasGraphQLClient package. We have clinical data, immune features, scores of
+predictors of response to immunotherapy, and quantile normalized gene expression.
+
+You can get more information in iAtlas on immune features, and our annotation of
+immunomodulators genes. You can access more information about these datasets in iAtlas.
+
+As a first step, let’s take a look at the available datasets.
+
+```{r}
+# datasets that we have in the iAtlas database
+datasets <- iatlasGraphQLClient::query_datasets()
+datasets
+```
+
+Let's focus on the TCGA data.
+
+```{r}
+tcga_studies <- iatlasGraphQLClient::query_tags_with_parent_tags(parent_tags = "TCGA_Study")
+tcga_studies$tag_name
+```
+
+From that list, we might be interested in a particular dataset, let's look at BRCA.
+
+
+```{r}
+samples <- iatlasGraphQLClient::query_tag_samples(parent_tags = "TCGA_Study",tags= c(tag_name = "BRCA"))
+
+sampleids <- samples$sample_name
+
+length(sampleids)
+
+head(sampleids)
+```
+
+ To start with, let's look at the list of immunomodulator genes,
+and genes by gene set name.
+
+```{r}
+immunomodulators <- iatlasGraphQLClient::query_immunomodulators()
+head(immunomodulators)
+```
+
+
+With that query, we see the dataset contains 1087 samples.
+
+To query the copy number results, we need to use the query_copy_number_results function. When using that function, 
+it's good to remember that the'tag_name' is what will specify the TCGA tumor type.
+
+Beware, if the list of sampleids is too long, we may get a timeout error!
+
+```{r}
+# running this function with no parameters will return the entire table.
+results <- iatlasGraphQLClient::query_copy_number_results(entrez = immunomodulators$entrez[1:5], 
+                                                          tag='BRCA',
+                                                          feature='AS')
+
+results
+```
+
+The results table includes:
+  
+  'direction' 
+  'mean_normal' 
+  'mean_cnv' 
+  'p_value' 
+  'log10_p_value' 
+  't_stat' 
+
+Let's try to confirm a result.  Take BTN3A2, which is attached to a very high T statistic through the Aneuploidy Score (AS).
+
+```{r}
+as <- iatlasGraphQLClient::query_feature_values(samples = head(sampleids), features = 'AS',)
+```
+
+
+Let's compare these scores to gene copy numbers
+
+```{r}
+cnvs <- read_table("E:/Data/all_CNVR_data_by_genes_whitelisted.tsv")
+bcds <- read_table("E:/Data/PanCan_Whitelist.csv")
+
+cnvs[1:5,1:6]
+
+sum( colnames(cnvs) %in% (bcds$AliquotBarcode) )
+
+dim(cnvs)
+
+```
+Please see https://cri-iatlas.org and let us know if we can help!
+
