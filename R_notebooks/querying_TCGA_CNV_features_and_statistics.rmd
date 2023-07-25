@@ -57,7 +57,7 @@ and genes by gene set name.
 
 ```{r}
 immunomodulators <- iatlasGraphQLClient::query_immunomodulators()
-head(immunomodulators)
+immunomodulators
 ```
 
 
@@ -70,11 +70,10 @@ Beware, if the list of sampleids is too long, we may get a timeout error!
 
 ```{r}
 # running this function with no parameters will return the entire table.
-results <- iatlasGraphQLClient::query_copy_number_results(entrez = immunomodulators$entrez[1:5], 
+results <- iatlasGraphQLClient::query_copy_number_results(#entrez = 22,  #22:ABCB7 # immunomodulators$entrez[1:5], 
                                                           tag='BRCA',
-                                                          feature='AS')
-
-results
+                                                          feature='leukocyte_fraction')
+results %>% filter(entrez == 22)
 ```
 
 The results table includes:
@@ -89,22 +88,54 @@ The results table includes:
 Let's try to confirm a result.  Take BTN3A2, which is attached to a very high T statistic through the Aneuploidy Score (AS).
 
 ```{r}
-as <- iatlasGraphQLClient::query_feature_values(samples = head(sampleids), features = 'AS',)
+lf1 <- iatlasGraphQLClient::query_feature_values(samples = sampleids[1:100], features = 'leukocyte_fraction',)
+lf2 <- iatlasGraphQLClient::query_feature_values(samples = sampleids[101:200], features = 'leukocyte_fraction',)
+lf3 <- iatlasGraphQLClient::query_feature_values(samples = sampleids[201:300], features = 'leukocyte_fraction',)
+lf4 <- iatlasGraphQLClient::query_feature_values(samples = sampleids[301:400], features = 'leukocyte_fraction',)
+lf5 <- iatlasGraphQLClient::query_feature_values(samples = sampleids[401:500], features = 'leukocyte_fraction',)
+lf6 <- iatlasGraphQLClient::query_feature_values(samples = sampleids[601:700], features = 'leukocyte_fraction',)
+lf7 <- iatlasGraphQLClient::query_feature_values(samples = sampleids[701:800], features = 'leukocyte_fraction',)
+lf8 <- iatlasGraphQLClient::query_feature_values(samples = sampleids[801:900], features = 'leukocyte_fraction',)
+lf9 <- iatlasGraphQLClient::query_feature_values(samples = sampleids[900:length(sampleids)], features = 'leukocyte_fraction',)
+lfs <- rbind(lf1,lf2,lf3,lf4,lf5,lf6,lf7,lf8,lf9)
+head(lfs)
 ```
+
 
 
 Let's compare these scores to gene copy numbers
 
 ```{r}
-cnvs <- read_table("E:/Data/all_CNVR_data_by_genes_whitelisted.tsv")
-bcds <- read_table("E:/Data/PanCan_Whitelist.csv")
+cnvs <- read_table("E:/Data/pancan/all_thresholded.by_genes_whitelisted.tsv.gz")
 
-cnvs[1:5,1:6]
+al_ids <- colnames(cnvs)[6:ncol(cnvs)]
 
-sum( colnames(cnvs) %in% (bcds$AliquotBarcode) )
+pat_ids <- sapply(alids, function(a) strtrim(a,12))
 
-dim(cnvs)
+df <- data.frame(sample=pat_ids, ABCB7=unlist(cnvs[cnvs$Gene == 'ABCB7',6:ncol(cnvs)]))
+  
+dim(df) # 10713 rows
+
+df2 <- dplyr::inner_join(df, lfs)  # lfs 972 rows, results in 959 rows #
+               
+head(df2)
+```
+
+
+```{r}
+
+table(df2$ABCB7)
 
 ```
+
+```{r}
+
+t.test(df2$feature_value[df2$ABCB7 < 0], df2$feature_value[df2$ABCB7 == 0])
+
+```
+
+
+
+
 Please see https://cri-iatlas.org and let us know if we can help!
 
