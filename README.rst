@@ -28,26 +28,39 @@ If running in a browser, Firefox is recommended (due to a conflict with the plot
 
 **Notebooks**
 
-    1. `Cell content barplots`_
+    #. `Query the CRI iAtlas database`_
+        Explore the data hosted by CRI iAtlas by using the API to query our database
+
+    #. `Query Immune Checkpoint Inhibition data`_
+        Explore the Immune Checkpoint Inhibition (ICI) data available in iAtlas
+
+    #. `Cell content barplots`_
         Plot estimated cell type contents against samples in our database
 
-    2. `Clinical outcomes`_
+    #. `Clinical outcomes`_
         Plot survival curves comparing your data to samples in our database
     
-    3. `Immune feature trends`_
+    #. `Immune feature trends`_
         Investigate using our collection of immune features
+    
+    #. `ICI Hazard Ratio`_
+        Analyze outcome data in ICI datasets using Cox proportional hazard models
 
-    4. `ICI Models - Elastic Net`_
+    #. `ICI Neoantigen`_
+        Explore the neoantigen data available in iAtlas
+
+    #. `ICI Models - Elastic Net`_
         Build an elastic net regression model with ICI data
 
-    5. `ICI Models - Logistic Regression`_
+    #. `ICI Models - Logistic Regression`_
         Build a logistic regression model with ICI data
     
-    6. `ICI Models - Random Forest`_
+    #. `ICI Models - Random Forest`_
         Build a Random Forest model with ICI data
 
-    7. `ICI Models - XGboost`_
+    #. `ICI Models - XGboost`_
         Build a eXtreme Gradient Boosting (XGBoost) model with ICI data
+
 
 
 
@@ -64,18 +77,26 @@ and follow @iatlas_cri on Twitter for latest developments!
 
 .. _our landing page: https://cri-iatlas.org
 
+.. _Query the CRI iAtlas database: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/querying_TCGA_features_and_expression.ipynb
+
+.. _Query Immune Checkpoint Inhibition data: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_query_iatlas_data.ipynb
+
 .. _Cell content barplots: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/cell_content_barplots.ipynb
 
 .. _Clinical outcomes: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/clinical_outcomes.ipynb
 
 .. _Immune feature trends: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/immune_feature_trends.ipynb
 
-.. _ICI Models - Elastic Net: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_models_elastic_net.ipynb
+.. _ICI Hazard Ratio: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_hazard_ratio.ipynb
 
-.. _ICI Models - Logistic Regression: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_models_logistic_regression.ipynb
+.. _ICI Neoantigen: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_neoantigen.ipynb
 
-.. _ICI Models - Random Forest: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_models_random_forest.ipynb
+.. _ICI Models - Elastic Net: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_models_notebooks/ici_models_elastic_net.ipynb
 
-.. _ICI Models - XGboost: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_models_xgboost.ipynb
+.. _ICI Models - Logistic Regression: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_models_notebooks/ici_models_logistic_regression.ipynb
+
+.. _ICI Models - Random Forest: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_models_notebooks/ici_models_random_forest.ipynb
+
+.. _ICI Models - XGboost: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_models_notebooks/ici_models_xgboost.ipynb
 
 .. _33214875: https://pubmed.ncbi.nlm.nih.gov/33214875/
