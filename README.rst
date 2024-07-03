@@ -34,6 +34,9 @@ If running in a browser, Firefox is recommended (due to a conflict with the plot
     #. `Query Immune Checkpoint Inhibition data`_
         Explore the Immune Checkpoint Inhibition (ICI) data available in iAtlas
 
+    #. `Query Immune Checkpoint Inhibition data - Python`_
+        Explore the Immune Checkpoint Inhibition (ICI) data available in iAtlas, using Python
+
     #. `Cell content barplots`_
         Plot estimated cell type contents against samples in our database
 
@@ -80,6 +83,8 @@ and follow @iatlas_cri on Twitter for latest developments!
 .. _Query the CRI iAtlas database: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/querying_TCGA_features_and_expression.ipynb
 
 .. _Query Immune Checkpoint Inhibition data: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_query_iatlas_data.ipynb
+
+.. _Query Immune Checkpoint Inhibition data - Python: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_query_iatlas_data_python.ipynb
 
 .. _Cell content barplots: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/cell_content_barplots.ipynb
 
