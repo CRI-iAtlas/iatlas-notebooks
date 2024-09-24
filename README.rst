@@ -36,6 +36,9 @@ If running in a browser, Firefox is recommended (due to a conflict with the plot
 
     #. `Query Immune Checkpoint Inhibition data - Python`_
         Explore the Immune Checkpoint Inhibition (ICI) data available in iAtlas, using Python
+    
+    #. `Query Pseudobulk single-cell RNAseq data available in iAtlas`_
+        Explore the Pseudobulk single-cell RNAseq data available in iAtlas
 
     #. `Cell content barplots`_
         Plot estimated cell type contents against samples in our database
@@ -85,6 +88,8 @@ and follow @iatlas_cri on Twitter for latest developments!
 .. _Query Immune Checkpoint Inhibition data: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_query_iatlas_data.ipynb
 
 .. _Query Immune Checkpoint Inhibition data - Python: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/ici_query_iatlas_data_python.ipynb
+
+.. _Query Pseudobulk single-cell RNAseq data available in iAtlas: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/query_iatlas_single_cell_datasets.ipynb
 
 .. _Cell content barplots: https://github.com/CRI-iAtlas/iatlas-notebooks/blob/main/cell_content_barplots.ipynb
 
