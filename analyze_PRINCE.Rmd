@@ -1,0 +1,190 @@
+---
+title: "PRINCE Study Data Plots"
+output: html_notebook
+---
+
+Install needed packages
+```{r}
+try({
+    packages = c("magrittr", "dplyr", "feather", "tidyr", "survival", "survminer", "plotly", "repr", "purr")
+    sapply(packages, function(x) {
+      if (!require(x,character.only = TRUE))
+        install.packages(x)
+        library(x,character.only = TRUE)
+    })
+
+    if (!require(iatlas.modules)) {
+        devtools::install_github("th86/concordanceIndex")
+        library(concordanceIndex)
+    }
+    
+    # and our iatlas package from github
+    if (!require(iatlas.modules)) {
+      devtools::install_github("CRI-iAtlas/iatlas.modules")
+      library(iatlas.modules)
+    }},
+    silent = TRUE
+)
+
+```
+
+
+
+Source needed functions. These are functions from the iAtlas app source code, copied here for convenience
+```{r}
+source('functions/notebook_functions_2.R')
+```
+
+There are other notebooks in this repository that illustrate functions used to query the iAtlas database to obtain data. We use these functions below.
+
+### Build Data Matrices
+Build data frame of feature values. Includes e.g. gene expression signature scores and survival
+```{r}
+## use this if you just want to see available features
+##features_df <- iatlasGraphQLClient::query_features(cohorts = "PRINCE") 
+feature_value_df <- iatlasGraphQLClient::query_feature_values(cohorts = "PRINCE")
+feature_value_df <- feature_value_df %>% rename(sample_name=sample) ## expected by later functions
+feature_value_df <- feature_value_df %>% mutate(dataset_name="PRINCE") ## expected by later functions
+```
+
+Obtain samples IDs for the PRINCE study
+```{r}
+prince_samples  <- iatlasGraphQLClient::query_dataset_samples(datasets = "PRINCE")$sample_name
+```
+
+Build sample matrix containing patient, ICI treatment, and response
+```{r}
+m1 <- iatlasGraphQLClient::query_sample_patients(samples=prince_samples) %>% select(sample_name,patient_name)
+tags <- c("ICI_Rx","Responder","Response","Sample_Treatment")
+m3 <- iatlasGraphQLClient::query_tag_samples_parents(cohort="PRINCE",parent_tags = tags) %>% distinct()
+m4 <- m3 %>% select(sample_name,parent_tag_name,tag_short_display)
+m5 <- m4 %>% pivot_wider(names_from = parent_tag_name,values_from= tag_short_display)
+sample_mat <- m5 %>% inner_join(m1,by="sample_name")
+```
+
+Counts
+```{r}
+cat("No of samples:",nrow(sample_mat),"\n")
+cat("Responder:")
+table(sample_mat$Responder)
+cat("Response:")
+table(sample_mat$Response)
+cat("ICI_Rx:")
+table(sample_mat$ICI_Rx)
+cat("Sample_Treatment:")
+table(sample_mat$Sample_Treatment)
+```
+We'll build some relevant sample subsets here. In the iAtlas app, these can be made using the Cohort selection. 
+
+Sample IDs for samples obtained prior to ICI treatment, and during treatment
+```{r}
+samps_pre <- sample_mat %>% filter(Sample_Treatment=="Pre-treatment") %>% purrr::pluck("sample_name")
+samps_during <- sample_mat %>% filter(Sample_Treatment=="During treatment") %>% purrr::pluck("sample_name")
+```
+
+Sample IDs for samples where the response is known
+```{r}
+samps_known_response <- sample_mat %>% filter(Response != "Not available") %>% purrr::pluck("sample_name")
+```
+
+##
+## Survival plot
+##
+We construct a data frame using the iAtlas app function `build_survival_df` and plot the survival curves using another function `create_kmplot`.
+
+The primary sample division is by Responder, so let's make a data frame of those values 
+```{r}
+df_responder <- iatlasGraphQLClient::query_tag_samples_parents(cohort="PRINCE",parent_tags = "Responder") %>% distinct() %>%
+select(sample_name,tag_short_display) %>% rename(group_name=tag_short_display)
+```
+
+Join that to the data frame of feature values (which has the survival data)
+```{r}
+df <- feature_value_df %>% left_join(df_responder,by="sample_name")
+```
+
+The secondary division of the samples will be by the Macrophage Regulation signature. Create data frame with that.
+```{r}
+extra_group_df <- feature_value_df %>% filter(feature_name=="CSF1_response") 
+```
+
+Restrict to pre-treatment samples and corresponding patients for which response is known
+```{r}
+df <- df %>% filter(sample_name %in% intersect(samps_pre,samps_known_response))
+extra_group_df <- extra_group_df %>% filter(sample_name %in% intersect(samps_pre,samps_known_response))
+```
+
+Build the data frame going that goes into the plot. Here there is an option to include the extra sample group or not. 
+```{r}
+df_new <- build_survival_df(df,group_column="group_name", time_column="PFI_time_1", filter_df = TRUE,  extra_group_df , extra_group = "No")
+df_surv <- df_new %>% distinct()
+```
+
+We end up with time, status, measure. In iatlas-app this is done with a shiny reactive
+```{r}
+fit <- survival::survfit(survival::Surv(time, status) ~ measure, data = df_surv)
+```
+
+
+```{r,fig.width=10, fig.height=6}
+
+create_kmplot(fit, 
+              df_surv, 
+              confint=FALSE, 
+              risktable=TRUE, 
+              title="PRINCE - PDAC, PD-1", 
+              group_colors=NULL, 
+              show_pval = TRUE, 
+              show_pval_method = FALSE, 
+              facet = FALSE)
+```
+
+### Immunomodulators
+
+```{r}
+immunomodulators <- iatlasGraphQLClient::query_immunomodulators()
+head(immunomodulators)
+```
+
+Immunomodulator values 
+```{r}
+gene_vals <- iatlasGraphQLClient::query_gene_expression(cohorts = "PRINCE", entrez = immunomodulators$entrez)
+```
+
+```{r}
+im_exp <- gene_vals %>% select(-entrez) %>% pivot_wider(names_from = hgnc,values_from=rna_seq_expr, values_fill=NA) %>% rename(sample_name=sample)
+```
+
+```{r}
+m <- sample_mat %>% inner_join(im_exp,by="sample_name")
+```
+
+```{r}
+mm <- m %>% group_by(Responder) %>% summarise(across(c(`HLA-DRA`:`HLA-A`),mean)) %>% as.data.frame()
+g <- mm[,2:ncol(mm)] ; rownames(g) <- mm[,1]
+g <- t(g)
+```
+
+```{r}
+g %>% ggplot(aes(`Non-Responder`,Responder,label=rownames(.))) + geom_point() + scale_x_log10()  + scale_y_log10() + geom_abline()+  geom_text()  
+```
+
+
+```{r}
+mm <- m %>% group_by(`ICI_Rx`) %>% summarise(across(c(`HLA-DRA`:`HLA-A`),mean)) %>% as.data.frame()
+g <- mm[,2:ncol(mm)] ; rownames(g) <- mm[,1]
+g <- t(g)
+```
+
+
+
+
+```{r}
+g %>% ggplot(aes(`Nivolumab`,`None`,label=rownames(.))) + geom_point() + scale_x_log10()  + scale_y_log10() + geom_abline()+  geom_text()  
+```
+
+
+
+
+
+
